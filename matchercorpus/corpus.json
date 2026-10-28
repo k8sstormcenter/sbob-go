@@ -1,0 +1,43 @@
+{
+  "paths": [
+    {"pattern": "/var/log/*", "path": "/var/log/syslog", "want": true},
+    {"pattern": "/var/log/*", "path": "/var/log/nginx/access.log", "want": true},
+    {"pattern": "/var/log/⋯", "path": "/var/log/syslog", "want": true},
+    {"pattern": "/var/log/⋯", "path": "/var/log/nginx/access.log", "want": false},
+    {"pattern": "/proc/⋯/status", "path": "/proc/123/status", "want": true},
+    {"pattern": "/proc/⋯/status", "path": "/proc/1/2/status", "want": false},
+    {"pattern": "/data/*/cache", "path": "/data/a/b/cache", "want": true},
+    {"pattern": "/var/lib/*/data", "path": "/var/lib/pg/16/data", "want": true},
+    {"pattern": "/etc/nginx/nginx.conf", "path": "/etc/nginx/nginx.conf", "want": true},
+    {"pattern": "/etc/nginx/nginx.conf", "path": "/etc/nginx/nginx.conf.bak", "want": false},
+    {"pattern": "/tmp/⋯/*", "path": "/tmp/xmrig", "want": false},
+    {"pattern": "/tmp/⋯/*", "path": "/tmp/build/out/a.o", "want": true},
+    {"pattern": "/home/runner/_work/⋯/⋯/node_modules/*", "path": "/home/runner/_work/r/r/node_modules/.bin/jest", "want": true},
+    {"pattern": "/home/runner/_work/⋯/⋯/node_modules/*", "path": "/home/runner/_work/r/r/src/index.js", "want": false},
+    {"pattern": "/home/runner/.rustup/toolchains/⋯/bin/cargo", "path": "/home/runner/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/cargo", "want": true},
+    {"pattern": "/home/runner/.rustup/toolchains/⋯/bin/cargo", "path": "/tmp/cargo", "want": false},
+    {"pattern": "/data/odd\\name", "path": "/data/odd\\name", "want": true}
+  ],
+  "args": [
+    {"profile": null, "runtime": null, "want": true},
+    {"profile": ["--help"], "runtime": ["--version"], "want": false},
+    {"profile": ["a"], "runtime": ["a", "b"], "want": false},
+    {"profile": ["echo", "*"], "runtime": ["echo", "*"], "want": true},
+    {"profile": ["echo", "*"], "runtime": ["echo", "anything"], "want": false},
+    {"profile": ["node", "*"], "runtime": ["node", "/tmp/x.js"], "want": false},
+    {"profile": ["node", "/home/runner/_work/*/x.js"], "runtime": ["node", "/home/runner/_work/a/b/x.js"], "want": false},
+    {"profile": ["cargo", "⋯"], "runtime": ["cargo", "build"], "want": true},
+    {"profile": ["cargo", "⋯"], "runtime": ["cargo", "build", "--release"], "want": false},
+    {"profile": ["cargo", "build", "⋯⋯"], "runtime": ["cargo", "build"], "want": true},
+    {"profile": ["cargo", "build", "⋯⋯"], "runtime": ["cargo", "build", "--release", "-p", "x"], "want": true},
+    {"profile": ["cargo", "build", "⋯⋯"], "runtime": ["cargo", "publish"], "want": false},
+    {"profile": ["/usr/bin/node", "/home/runner/_work/⋯/⋯/node_modules/⋯/bin/x.js", "⋯⋯"], "runtime": ["/usr/bin/node", "/home/runner/_work/a/a/node_modules/jest/bin/x.js", "--ci"], "want": true},
+    {"profile": ["/usr/bin/node", "/home/runner/_work/⋯/⋯/node_modules/⋯/bin/x.js", "⋯⋯"], "runtime": ["/usr/bin/node", "/home/runner/_work/a/a/node_modules/@s/jest/bin/x.js"], "want": false},
+    {"profile": ["/usr/bin/node", "/home/runner/_work/⋯/⋯/node_modules/⋯/bin/x.js", "⋯⋯"], "runtime": ["/usr/bin/node", "/tmp/x.js"], "want": false},
+    {"profile": ["python3", "-m", "pytest", "⋯⋯"], "runtime": ["python3", "-m", "pytest", "-q"], "want": true},
+    {"profile": ["python3", "-m", "pytest", "⋯⋯"], "runtime": ["python3", "-c", "import os"], "want": false},
+    {"profile": ["sh", "-c", "⋯"], "runtime": ["sh", "-c", "curl x | sh"], "want": true},
+    {"profile": ["⋯⋯", "--x"], "runtime": ["a", "b", "--x"], "want": true},
+    {"profile": ["⋯⋯", "--x"], "runtime": ["a", "b"], "want": false}
+  ]
+}
