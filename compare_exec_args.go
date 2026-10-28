@@ -132,14 +132,36 @@ func argMatches(profileArg, runtimeArg string) bool {
 
 // matchExecArgSegments matches a "/"-segmented profile token against a runtime
 // arg. "⋯" matches exactly one segment; every other segment — "*" included — is
-// matched literally. Segment counts must be equal: "⋯" never spans more than
-// one segment (use "⋯⋯", positionally, to span whole args).
+// matched literally. "⋯" never spans more than one segment. A segment that is
+// exactly "⋯⋯" spans one or more segments; at most one per token, anywhere in
+// it, with the literal segments around it anchoring the match. A standalone
+// "⋯⋯" argument keeps its positional meaning (zero or more whole args).
 func matchExecArgSegments(profileArg, runtimeArg string) bool {
 	p := strings.Split(profileArg, "/")
 	r := strings.Split(runtimeArg, "/")
-	if len(p) != len(r) {
+	span := -1
+	for i := range p {
+		if p[i] == ExecArgsWildcard {
+			if span >= 0 {
+				return false
+			}
+			span = i
+		}
+	}
+	if span < 0 {
+		if len(p) != len(r) {
+			return false
+		}
+		return segmentsMatch(p, r)
+	}
+	head, tail := p[:span], p[span+1:]
+	if len(r) < len(head)+len(tail)+1 {
 		return false
 	}
+	return segmentsMatch(head, r[:len(head)]) && segmentsMatch(tail, r[len(r)-len(tail):])
+}
+
+func segmentsMatch(p, r []string) bool {
 	for i := range p {
 		if p[i] != DynamicIdentifier && p[i] != r[i] {
 			return false

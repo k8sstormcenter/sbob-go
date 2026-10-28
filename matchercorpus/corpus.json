@@ -332,6 +332,108 @@
         "b"
       ],
       "want": false
+    },
+    {
+      "name": "span: one segment",
+      "profile": [
+        "node",
+        "/home/runner/_work/⋯/⋯/src/⋯⋯",
+        "⋯⋯"
+      ],
+      "runtime": [
+        "node",
+        "/home/runner/_work/a/b/src/x.js"
+      ],
+      "want": true
+    },
+    {
+      "name": "span: several segments and trailing args",
+      "profile": [
+        "node",
+        "/home/runner/_work/⋯/⋯/src/⋯⋯",
+        "⋯⋯"
+      ],
+      "runtime": [
+        "node",
+        "/home/runner/_work/a/b/src/x/y/z.js",
+        "--ci"
+      ],
+      "want": true
+    },
+    {
+      "name": "span: needs at least one segment",
+      "profile": [
+        "node",
+        "/home/runner/_work/⋯/⋯/src/⋯⋯",
+        "⋯⋯"
+      ],
+      "runtime": [
+        "node",
+        "/home/runner/_work/a/b/src"
+      ],
+      "want": false
+    },
+    {
+      "name": "span: the literal segment anchors it",
+      "profile": [
+        "node",
+        "/home/runner/_work/⋯/⋯/src/⋯⋯",
+        "⋯⋯"
+      ],
+      "runtime": [
+        "node",
+        "/home/runner/_work/_tool/node/v/x64/bin/npm"
+      ],
+      "want": false
+    },
+    {
+      "name": "span: another root does not match",
+      "profile": [
+        "node",
+        "/home/runner/_work/⋯/⋯/src/⋯⋯",
+        "⋯⋯"
+      ],
+      "runtime": [
+        "node",
+        "/tmp/x.js"
+      ],
+      "want": false
+    },
+    {
+      "name": "span: in the middle with a literal tail",
+      "profile": [
+        "node",
+        "/home/runner/_work/⋯/⋯/node_modules/⋯⋯/bin/x.js"
+      ],
+      "runtime": [
+        "node",
+        "/home/runner/_work/a/b/node_modules/@s/p/bin/x.js"
+      ],
+      "want": true
+    },
+    {
+      "name": "span: middle needs at least one segment",
+      "profile": [
+        "node",
+        "/home/runner/_work/⋯/⋯/node_modules/⋯⋯/bin/x.js"
+      ],
+      "runtime": [
+        "node",
+        "/home/runner/_work/a/b/node_modules/bin/x.js"
+      ],
+      "want": false
+    },
+    {
+      "name": "span: a star stays literal in argv",
+      "profile": [
+        "node",
+        "/home/runner/_work/⋯/⋯/src/*"
+      ],
+      "runtime": [
+        "node",
+        "/home/runner/_work/a/b/src/x.js"
+      ],
+      "want": false
     }
   ],
   "subtract": [

@@ -581,3 +581,30 @@ func TestMatchExecArgs_BackCompatVsCompareExecArgs(t *testing.T) {
 		}
 	}
 }
+
+func TestCompareExecArgs_SegmentSpanInsideAToken(t *testing.T) {
+	cases := []struct {
+		name    string
+		profile []string
+		runtime []string
+		want    bool
+	}{
+		{"one segment", []string{"node", "/w/⋯/src/⋯⋯"}, []string{"node", "/w/a/src/x.js"}, true},
+		{"several segments", []string{"node", "/w/⋯/src/⋯⋯"}, []string{"node", "/w/a/src/x/y/z.js"}, true},
+		{"zero segments is not enough", []string{"node", "/w/⋯/src/⋯⋯"}, []string{"node", "/w/a/src"}, false},
+		{"literal anchor", []string{"node", "/w/⋯/src/⋯⋯"}, []string{"node", "/w/a/lib/x.js"}, false},
+		{"middle span with literal tail", []string{"node", "/w/node_modules/⋯⋯/bin/x.js"}, []string{"node", "/w/node_modules/@s/p/bin/x.js"}, true},
+		{"middle span needs a segment", []string{"node", "/w/node_modules/⋯⋯/bin/x.js"}, []string{"node", "/w/node_modules/bin/x.js"}, false},
+		{"leading span", []string{"node", "/⋯⋯/bin/x.js"}, []string{"node", "/opt/tool/bin/x.js"}, true},
+		{"two spans fail closed", []string{"node", "/w/⋯⋯/mid/⋯⋯/x.js"}, []string{"node", "/w/a/mid/b/x.js"}, false},
+		{"star stays literal", []string{"node", "/w/⋯/src/*"}, []string{"node", "/w/a/src/x.js"}, false},
+		{"standalone wildcard keeps its meaning", []string{"node", "⋯⋯"}, []string{"node", "a", "b"}, true},
+	}
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			if got := dynamicpathdetector.CompareExecArgs(tc.profile, tc.runtime); got != tc.want {
+				t.Errorf("CompareExecArgs(%v, %v) = %v, want %v", tc.profile, tc.runtime, got, tc.want)
+			}
+		})
+	}
+}
