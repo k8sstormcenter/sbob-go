@@ -734,7 +734,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "⋯⋯"
           ]
         }
@@ -743,7 +743,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "czf",
             "/home/runner/tpcp.tar.gz",
             "⋯⋯"
@@ -753,7 +753,7 @@
       "runtime": {
         "path": "/usr/bin/tar",
         "args": [
-          "tar",
+          "/usr/bin/tar",
           "-xzf",
           "/home/runner/_work/_actions/_temp_x/a.tgz"
         ]
@@ -767,7 +767,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "⋯⋯"
           ]
         }
@@ -776,7 +776,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "czf",
             "/home/runner/tpcp.tar.gz",
             "⋯⋯"
@@ -786,7 +786,7 @@
       "runtime": {
         "path": "/usr/bin/tar",
         "args": [
-          "tar",
+          "/usr/bin/tar",
           "czf",
           "/home/runner/tpcp.tar.gz",
           "-C",
@@ -803,7 +803,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "⋯⋯"
           ]
         }
@@ -812,7 +812,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "czf",
             "/home/runner/tpcp.tar.gz",
             "⋯⋯"
@@ -822,7 +822,7 @@
       "runtime": {
         "path": "/usr/bin/tar",
         "args": [
-          "tar",
+          "/usr/bin/tar",
           "czf",
           "/home/runner/tpcp.tar.gz",
           "-C",
@@ -839,7 +839,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "⋯⋯"
           ]
         }
@@ -848,7 +848,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "czf",
             "/home/runner/tpcp.tar.gz",
             "⋯⋯"
@@ -858,7 +858,7 @@
       "runtime": {
         "path": "/usr/bin/tar",
         "args": [
-          "tar",
+          "/usr/bin/tar",
           "-xzf",
           "/home/runner/_work/_actions/_temp_x/a.tgz"
         ]
@@ -872,7 +872,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "⋯⋯"
           ]
         }
@@ -885,7 +885,7 @@
       "runtime": {
         "path": "/usr/bin/tar",
         "args": [
-          "tar",
+          "/usr/bin/tar",
           "-xzf",
           "/home/runner/_work/_actions/_temp_x/a.tgz"
         ]
@@ -899,7 +899,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "⋯⋯"
           ]
         }
@@ -908,7 +908,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "⋯⋯"
           ]
         }
@@ -916,7 +916,7 @@
       "runtime": {
         "path": "/usr/bin/tar",
         "args": [
-          "tar",
+          "/usr/bin/tar",
           "-xzf",
           "/home/runner/_work/_actions/_temp_x/a.tgz"
         ]
@@ -930,7 +930,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "tar",
+            "/usr/bin/tar",
             "⋯⋯"
           ]
         }
@@ -939,7 +939,7 @@
         {
           "path": "/usr/bin/tar",
           "args": [
-            "gtar",
+            "/usr/bin/gtar",
             "⋯⋯"
           ]
         }
@@ -947,7 +947,7 @@
       "runtime": {
         "path": "/usr/bin/tar",
         "args": [
-          "tar",
+          "/usr/bin/tar",
           "-xzf",
           "/home/runner/_work/_actions/_temp_x/a.tgz"
         ]
