@@ -726,6 +726,233 @@
         "name": "github.com."
       },
       "want": true
+    },
+    {
+      "name": "exec_path: a vectored subtract leaves the path granted",
+      "surface": "exec_path",
+      "allow": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "czf",
+            "/home/runner/tpcp.tar.gz",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/tar",
+        "args": [
+          "tar",
+          "-xzf",
+          "/home/runner/_work/_actions/_temp_x/a.tgz"
+        ]
+      },
+      "want": true
+    },
+    {
+      "name": "exec_path: the subtracted vector itself keeps the path granted",
+      "surface": "exec_path",
+      "allow": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "czf",
+            "/home/runner/tpcp.tar.gz",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/tar",
+        "args": [
+          "tar",
+          "czf",
+          "/home/runner/tpcp.tar.gz",
+          "-C",
+          "/home/runner",
+          "dac-collected.txt"
+        ]
+      },
+      "want": true
+    },
+    {
+      "name": "exec: the subtracted vector is denied at the vector level",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "czf",
+            "/home/runner/tpcp.tar.gz",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/tar",
+        "args": [
+          "tar",
+          "czf",
+          "/home/runner/tpcp.tar.gz",
+          "-C",
+          "/home/runner",
+          "dac-collected.txt"
+        ]
+      },
+      "want": false
+    },
+    {
+      "name": "exec: the other vector of the same path stays admitted",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "czf",
+            "/home/runner/tpcp.tar.gz",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/tar",
+        "args": [
+          "tar",
+          "-xzf",
+          "/home/runner/_work/_actions/_temp_x/a.tgz"
+        ]
+      },
+      "want": true
+    },
+    {
+      "name": "exec_path: a path-only subtract denies the path for every vector",
+      "surface": "exec_path",
+      "allow": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/tar"
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/tar",
+        "args": [
+          "tar",
+          "-xzf",
+          "/home/runner/_work/_actions/_temp_x/a.tgz"
+        ]
+      },
+      "want": false
+    },
+    {
+      "name": "exec_path: a name-only subtract vector denies the path for that name",
+      "surface": "exec_path",
+      "allow": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/tar",
+        "args": [
+          "tar",
+          "-xzf",
+          "/home/runner/_work/_actions/_temp_x/a.tgz"
+        ]
+      },
+      "want": false
+    },
+    {
+      "name": "exec_path: a name-only subtract vector for another name leaves the path granted",
+      "surface": "exec_path",
+      "allow": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "tar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "gtar",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/tar",
+        "args": [
+          "tar",
+          "-xzf",
+          "/home/runner/_work/_actions/_temp_x/a.tgz"
+        ]
+      },
+      "want": true
     }
   ]
 }
