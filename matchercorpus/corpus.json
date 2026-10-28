@@ -333,5 +333,297 @@
       ],
       "want": false
     }
+  ],
+  "subtract": [
+    {
+      "name": "exec: subtract vector denies the matching argv",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/env",
+          "args": [
+            "/usr/bin/env",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/env",
+          "args": [
+            "/home/runner/.config/systemd/user/sysmon.py",
+            "--c2",
+            "45.148.10.212"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/env",
+        "args": [
+          "/home/runner/.config/systemd/user/sysmon.py",
+          "--c2",
+          "45.148.10.212"
+        ]
+      },
+      "want": false
+    },
+    {
+      "name": "exec: subtract vector leaves other argv admitted",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/env",
+          "args": [
+            "/usr/bin/env",
+            "⋯⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/env",
+          "args": [
+            "/home/runner/.config/systemd/user/sysmon.py",
+            "--c2",
+            "45.148.10.212"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/env",
+        "args": [
+          "/usr/bin/env",
+          "ls"
+        ]
+      },
+      "want": true
+    },
+    {
+      "name": "exec: subtract narrows a single-argument wildcard",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/getent",
+          "args": [
+            "/usr/bin/getent",
+            "hosts",
+            "⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/getent",
+          "args": [
+            "/usr/bin/getent",
+            "hosts",
+            "scan.aquasecurtiy.org"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/getent",
+        "args": [
+          "/usr/bin/getent",
+          "hosts",
+          "scan.aquasecurtiy.org"
+        ]
+      },
+      "want": false
+    },
+    {
+      "name": "exec: the rest of the wildcard stays admitted",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/getent",
+          "args": [
+            "/usr/bin/getent",
+            "hosts",
+            "⋯"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/getent",
+          "args": [
+            "/usr/bin/getent",
+            "hosts",
+            "scan.aquasecurtiy.org"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/getent",
+        "args": [
+          "/usr/bin/getent",
+          "hosts",
+          "github.com"
+        ]
+      },
+      "want": true
+    },
+    {
+      "name": "exec: identical allow and subtract cancel",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "/usr/bin/tar",
+            "czf",
+            "/home/runner/tpcp.tar.gz",
+            "-C",
+            "/home/runner",
+            "dac-collected.txt"
+          ]
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/tar",
+          "args": [
+            "/usr/bin/tar",
+            "czf",
+            "/home/runner/tpcp.tar.gz",
+            "-C",
+            "/home/runner",
+            "dac-collected.txt"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/tar",
+        "args": [
+          "/usr/bin/tar",
+          "czf",
+          "/home/runner/tpcp.tar.gz",
+          "-C",
+          "/home/runner",
+          "dac-collected.txt"
+        ]
+      },
+      "want": false
+    },
+    {
+      "name": "exec: a subtract on another path does not touch an argv-less exec",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/dash"
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/env",
+          "args": [
+            "/home/runner/.config/systemd/user/sysmon.py",
+            "--c2",
+            "45.148.10.212"
+          ]
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/dash"
+      },
+      "want": true
+    },
+    {
+      "name": "exec: a path-only subtract denies the argv-less exec",
+      "surface": "exec",
+      "allow": [
+        {
+          "path": "/usr/bin/dash"
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/usr/bin/dash"
+        }
+      ],
+      "runtime": {
+        "path": "/usr/bin/dash"
+      },
+      "want": false
+    },
+    {
+      "name": "open: a literal subtract inside an allowed wildcard",
+      "surface": "open",
+      "allow": [
+        {
+          "path": "/home/runner/*"
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/home/runner/.config/systemd/user/sysmon.py"
+        }
+      ],
+      "runtime": {
+        "path": "/home/runner/.config/systemd/user/sysmon.py"
+      },
+      "want": false
+    },
+    {
+      "name": "open: the rest of the wildcard stays admitted",
+      "surface": "open",
+      "allow": [
+        {
+          "path": "/home/runner/*"
+        }
+      ],
+      "subtract": [
+        {
+          "path": "/home/runner/.config/systemd/user/sysmon.py"
+        }
+      ],
+      "runtime": {
+        "path": "/home/runner/_work/x"
+      },
+      "want": true
+    },
+    {
+      "name": "domain: a subtracted name inside an allowed list",
+      "surface": "domain",
+      "allow": [
+        {
+          "name": "github.com."
+        },
+        {
+          "name": "scan.aquasecurtiy.org."
+        }
+      ],
+      "subtract": [
+        {
+          "name": "scan.aquasecurtiy.org."
+        }
+      ],
+      "runtime": {
+        "name": "scan.aquasecurtiy.org."
+      },
+      "want": false
+    },
+    {
+      "name": "domain: the other allowed name stays admitted",
+      "surface": "domain",
+      "allow": [
+        {
+          "name": "github.com."
+        },
+        {
+          "name": "scan.aquasecurtiy.org."
+        }
+      ],
+      "subtract": [
+        {
+          "name": "scan.aquasecurtiy.org."
+        }
+      ],
+      "runtime": {
+        "name": "github.com."
+      },
+      "want": true
+    }
   ]
 }

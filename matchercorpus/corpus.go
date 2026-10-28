@@ -26,9 +26,25 @@ type ArgCase struct {
 	Want    bool     `json:"want"`
 }
 
+type Entry struct {
+	Path string   `json:"path,omitempty"`
+	Args []string `json:"args,omitempty"`
+	Name string   `json:"name,omitempty"`
+}
+
+type SubtractCase struct {
+	Name     string  `json:"name,omitempty"`
+	Surface  string  `json:"surface"`
+	Allow    []Entry `json:"allow"`
+	Subtract []Entry `json:"subtract"`
+	Runtime  Entry   `json:"runtime"`
+	Want     bool    `json:"want"`
+}
+
 type Corpus struct {
-	Paths []PathCase `json:"paths"`
-	Args  []ArgCase  `json:"args"`
+	Paths    []PathCase     `json:"paths"`
+	Args     []ArgCase      `json:"args"`
+	Subtract []SubtractCase `json:"subtract,omitempty"`
 }
 
 var (
@@ -65,6 +81,14 @@ func Args() []ArgCase {
 		panic(err)
 	}
 	return corpus.Args
+}
+
+func Subtracts() []SubtractCase {
+	load()
+	if err != nil {
+		panic(err)
+	}
+	return corpus.Subtract
 }
 
 func Version() string {
