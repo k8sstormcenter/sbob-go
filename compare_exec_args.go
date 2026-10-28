@@ -22,16 +22,12 @@ func MatchExecArgs(profileArgs []string, argsRequired bool, runtimeArgs []string
 	return matchExecArgsStrict(profileArgs, runtimeArgs)
 }
 
-// CompareExecArgs reports whether runtimeArgs matches profileArgs, treating an
-// empty profileArgs as "no constraint" (matches anything). Non-empty vectors
-// are matched anchored at both ends by matchExecArgsStrict.
+// CompareExecArgs reports whether runtimeArgs matches profileArgs anchored at
+// both ends by matchExecArgsStrict: an empty profileArgs matches only an empty
+// runtimeArgs, so a path-only exec entry admits exactly an argument-less exec.
 //
-// Use MatchExecArgs to express "argv must be empty"; CompareExecArgs is kept
-// for callers that have not migrated to the ArgsRequired-aware API.
+// Use MatchExecArgs with argsRequired=false to express "no constraint".
 func CompareExecArgs(profileArgs, runtimeArgs []string) bool {
-	if len(profileArgs) == 0 {
-		return true
-	}
 	return matchExecArgsStrict(profileArgs, runtimeArgs)
 }
 

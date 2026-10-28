@@ -27,14 +27,9 @@ func TestCompareExecArgs_LiteralMatch(t *testing.T) {
 		runtime []string
 		want    bool
 	}{
-		// Empty profileArgs = "no argv constraint" — matches any runtime.
-		// Pinned this way so path-only Execs entries in user-defined
-		// profiles don't silently trigger R0040 when the rule consults
-		// was_executed_with_args. Path-only entries previously failed because
-		// the strict empty-empty match was firing R0040 on every legit exec.
 		{"both empty", nil, nil, true},
-		{"empty profile, non-empty runtime", nil, []string{"a"}, true},
-		{"empty profile, multi-arg runtime", nil, []string{"a", "b", "c"}, true},
+		{"empty profile, non-empty runtime", nil, []string{"a"}, false},
+		{"empty profile, multi-arg runtime", nil, []string{"a", "b", "c"}, false},
 		{"non-empty profile, empty runtime", []string{"a"}, nil, false},
 		{"single literal match", []string{"--help"}, []string{"--help"}, true},
 		{"single literal mismatch", []string{"--help"}, []string{"--version"}, false},
@@ -578,13 +573,7 @@ func TestMatchExecArgs_BackCompatVsCompareExecArgs(t *testing.T) {
 	}
 	for _, c := range cases {
 		oldCompare := dynamicpathdetector.CompareExecArgs(c.profile, c.runtime)
-		// MatchExecArgs with argsRequired=false has the same bypass for empty
-		// profile as CompareExecArgs; for non-empty profile both go via the
-		// shared strict matcher, which gives the same answer too — UNLESS
-		// the profile is non-empty AND the caller passed argsRequired=false
-		// which is "no constraint" → MatchExecArgs returns true. So we test
-		// the CompareExecArgs-equivalent path: argsRequired = (len(profile) > 0).
-		argsRequired := len(c.profile) > 0
+		argsRequired := true
 		newMatch := dynamicpathdetector.MatchExecArgs(c.profile, argsRequired, c.runtime)
 		if oldCompare != newMatch {
 			t.Errorf("back-compat mismatch profile=%v runtime=%v: CompareExecArgs=%v, MatchExecArgs(argsRequired=%v)=%v",
