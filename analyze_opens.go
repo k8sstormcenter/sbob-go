@@ -75,13 +75,6 @@ func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, sbomSet mapse
 // Subsumption check uses the same CompareDynamic the runtime matcher
 // (CEL `ap.was_opened`) uses, so both sides agree on what "covered"
 // means at every depth.
-//
-// Complexity: O(n²) over the input slice — each literal walks the full
-// pattern set to test coverage. For the profile sizes seen in practice
-// (≤ a few thousand entries per container even on chatty workloads) the
-// constant factor dominates and the quadratic shape is acceptable. If
-// profiles ever balloon beyond ~10k entries, swap the inner scan to a
-// precomputed prefix-trie lookup (not yet optimised).
 func consolidateOpens(opens []types.OpenCalls, sbomSet mapset.Set[string]) []types.OpenCalls {
 	if len(opens) <= 1 {
 		return opens
@@ -109,6 +102,12 @@ func consolidateOpens(opens []types.OpenCalls, sbomSet mapset.Set[string]) []typ
 		return strings.Compare(opens[a].Path, opens[b].Path)
 	})
 
+	rank := make(map[int]int, len(patternOrder))
+	for r, pi := range patternOrder {
+		rank[pi] = r
+	}
+	index := newOpenPatternIndex(opens, patternOrder)
+
 	keep := make([]bool, len(opens))
 	for i := range opens {
 		keep[i] = true
@@ -121,15 +120,15 @@ func consolidateOpens(opens []types.OpenCalls, sbomSet mapset.Set[string]) []typ
 		if sbomSet != nil && sbomSet.ContainsOne(o.Path) {
 			continue // SBOM paths always survive
 		}
-		for _, pi := range patternOrder {
-			if CompareDynamic(opens[pi].Path, o.Path) {
-				// `o` is subsumed by the pattern at pi — fold its Flags
-				// into the pattern entry so all observed access modes
-				// remain represented.
-				opens[pi].Flags = mapset.Sorted(mapset.NewThreadUnsafeSet(slices.Concat(opens[pi].Flags, o.Flags)...))
-				keep[i] = false
-				break
+		best := -1
+		for _, pi := range index.coverers(o.Path) {
+			if best < 0 || rank[pi] < rank[best] {
+				best = pi
 			}
+		}
+		if best >= 0 {
+			opens[best].Flags = mapset.Sorted(mapset.NewThreadUnsafeSet(slices.Concat(opens[best].Flags, o.Flags)...))
+			keep[i] = false
 		}
 	}
 

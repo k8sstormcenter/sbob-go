@@ -343,7 +343,10 @@ func collapseArgNode(node *argNode, threshold int) {
 // mergeArgNode unions src's subtree into dst.
 func mergeArgNode(dst, src *argNode) {
 	dst.terminal = dst.terminal || src.terminal
-	dst.envs = dst.envs.Union(src.envs)
+	src.envs.Each(func(env string) bool {
+		dst.envs.Add(env)
+		return false
+	})
 	for arg, child := range src.children {
 		if existing, ok := dst.children[arg]; ok {
 			mergeArgNode(existing, child)
@@ -408,60 +411,56 @@ func consolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
 	// each other), so candidate coverers are the patterns alone. This keeps a
 	// first deflation of thousands of literal argvs linear in practice.
 	var patterns []int
-	anyArgs := make([]bool, len(sorted))
+	isPattern := make([]bool, len(sorted))
 	for i := range sorted {
-		anyArgs[i] = slices.Contains(sorted[i].Args, ExecArgsWildcard)
 		if hasDynamicToken(sorted[i].Args) {
+			isPattern[i] = true
 			patterns = append(patterns, i)
 		}
 	}
 	if len(patterns) == 0 {
 		return sorted
 	}
-	covers := func(j, i int) bool {
-		// Without ⋯⋯ a coverer matches only argvs of its own length.
-		if i == j || anyArgs[i] || (!anyArgs[j] && len(sorted[j].Args) != len(sorted[i].Args)) {
-			return false
+	index := newExecPatternIndex(sorted, patterns)
+
+	coverers := make([][]int, len(sorted))
+	for i := range sorted {
+		if slices.Contains(sorted[i].Args, ExecArgsWildcard) {
+			continue
 		}
-		return CompareExecArgs(sorted[j].Args, sorted[i].Args)
+		coverers[i] = index.coverers(sorted[i].Args, i)
 	}
 
-	covered := make([]bool, len(sorted))
+	var kept []int
+	keptPattern := make([]bool, len(sorted))
 	for i := range sorted {
-		for _, j := range patterns {
-			if covers(j, i) {
-				covered[i] = true
-				break
-			}
-		}
-	}
-
-	var kept, keptPatterns []int
-	for i := range sorted {
-		if !covered[i] {
+		if len(coverers[i]) == 0 {
 			kept = append(kept, i)
-			if hasDynamicToken(sorted[i].Args) {
-				keptPatterns = append(keptPatterns, i)
-			}
+			keptPattern[i] = isPattern[i]
 		}
 	}
+	appended := make([]bool, len(sorted))
 	merged := map[int]mapset.Set[string]{}
 	for i := range sorted {
-		if !covered[i] {
+		if len(coverers[i]) == 0 {
 			continue
 		}
 		into := -1
-		for _, j := range keptPatterns {
-			if covers(j, i) {
+		for _, j := range coverers[i] {
+			if keptPattern[j] && (into < 0 || j < into) {
 				into = j
-				break
 			}
 		}
 		if into < 0 {
-			kept = append(kept, i) // no kept coverer: keeping it is always safe
-			if hasDynamicToken(sorted[i].Args) {
-				keptPatterns = append(keptPatterns, i)
+			for _, j := range coverers[i] {
+				if appended[j] && (into < 0 || j < into) {
+					into = j
+				}
 			}
+		}
+		if into < 0 {
+			kept = append(kept, i)
+			appended[i] = isPattern[i]
 			continue
 		}
 		set, ok := merged[into]
