@@ -84,6 +84,138 @@
       "pattern": "/data/odd\\name",
       "path": "/data/odd\\name",
       "want": true
+    },
+    {
+      "name": "trailing star: not the directory itself",
+      "pattern": "/var/log/*",
+      "path": "/var/log",
+      "want": false
+    },
+    {
+      "name": "trailing star: trailing slash is the same directory",
+      "pattern": "/var/log/*",
+      "path": "/var/log/",
+      "want": false
+    },
+    {
+      "name": "trailing star: a nested package config directory",
+      "pattern": "/etc/php/8.3/apache2/*",
+      "path": "/etc/php/8.3/apache2",
+      "want": false
+    },
+    {
+      "name": "trailing star: one file under it",
+      "pattern": "/etc/php/8.3/apache2/*",
+      "path": "/etc/php/8.3/apache2/php.ini",
+      "want": true
+    },
+    {
+      "name": "mid star: zero segments",
+      "pattern": "/a/*/b",
+      "path": "/a/b",
+      "want": true
+    },
+    {
+      "name": "mid star: over-grants every depth (_work/*)",
+      "pattern": "/home/runner/_work/*/src/build/example",
+      "path": "/home/runner/_work/src/build/example",
+      "want": true
+    },
+    {
+      "name": "mid star: over-grants deeper too",
+      "pattern": "/home/runner/_work/*/src/build/example",
+      "path": "/home/runner/_work/a/b/c/src/build/example",
+      "want": true
+    },
+    {
+      "name": "contract ⋯/⋯: exactly two checkout segments",
+      "pattern": "/home/runner/_work/⋯/⋯/src/build/example",
+      "path": "/home/runner/_work/src/build/example",
+      "want": false
+    },
+    {
+      "name": "contract ⋯/⋯: owner/repo",
+      "pattern": "/home/runner/_work/⋯/⋯/src/build/example",
+      "path": "/home/runner/_work/o/r/src/build/example",
+      "want": true
+    },
+    {
+      "name": "dyn: never zero segments",
+      "pattern": "/var/log/⋯",
+      "path": "/var/log",
+      "want": false
+    },
+    {
+      "name": "two stars: mid zero + mid zero",
+      "pattern": "/a/*/b/*/c",
+      "path": "/a/b/c",
+      "want": true
+    },
+    {
+      "name": "adjacent trailing stars collapse to one trailing star (dir)",
+      "pattern": "/x/*/*",
+      "path": "/x",
+      "want": false
+    },
+    {
+      "name": "adjacent trailing stars collapse to one trailing star (child)",
+      "pattern": "/x/*/*",
+      "path": "/x/y",
+      "want": true
+    },
+    {
+      "name": "⋯⋯ is literal in a path",
+      "pattern": "/tmp/⋯⋯",
+      "path": "/tmp/x",
+      "want": false
+    },
+    {
+      "name": "partial ⋯ in a path segment is literal",
+      "pattern": "/tmp/x⋯",
+      "path": "/tmp/xy",
+      "want": false
+    },
+    {
+      "name": "partial * in a path segment is literal",
+      "pattern": "/tmp/x*",
+      "path": "/tmp/xy",
+      "want": false
+    },
+    {
+      "name": "unanchored star covers root",
+      "pattern": "*",
+      "path": "/",
+      "want": true
+    },
+    {
+      "name": "anchored trailing star does not cover root",
+      "pattern": "/*",
+      "path": "/",
+      "want": false
+    },
+    {
+      "name": "empty pattern matches nothing",
+      "pattern": "",
+      "path": "/",
+      "want": false
+    },
+    {
+      "name": "deps contract path: owner/repo + hashed binary",
+      "pattern": "/home/runner/_work/⋯/⋯/target/debug/deps/⋯",
+      "path": "/home/runner/_work/o/r/target/debug/deps/foo-0a1b2c3d",
+      "want": true
+    },
+    {
+      "name": "deps contract path: one checkout segment short",
+      "pattern": "/home/runner/_work/⋯/⋯/target/debug/deps/⋯",
+      "path": "/home/runner/_work/r/target/debug/deps/foo",
+      "want": false
+    },
+    {
+      "name": "dpkg transient is its own path",
+      "pattern": "/etc/ca-certificates.conf",
+      "path": "/etc/ca-certificates.conf.dpkg-new",
+      "want": false
     }
   ],
   "args": [
@@ -432,6 +564,135 @@
       "runtime": [
         "node",
         "/home/runner/_work/a/b/src/x.js"
+      ],
+      "want": false
+    },
+    {
+      "name": "fused ⋯ inside a KEY=value argument matches nothing",
+      "profile": [
+        "--build-arg",
+        "BUILD_TAGS=⋯"
+      ],
+      "runtime": [
+        "--build-arg",
+        "BUILD_TAGS=directalerts"
+      ],
+      "want": false
+    },
+    {
+      "name": "fused ⋯ inside an image reference tag matches nothing",
+      "profile": [
+        "--tag",
+        "⋯:⋯"
+      ],
+      "runtime": [
+        "--tag",
+        "app:1.0"
+      ],
+      "want": false
+    },
+    {
+      "name": "literal KEY=value matches itself",
+      "profile": [
+        "--build-arg",
+        "BUILD_TAGS=directalerts"
+      ],
+      "runtime": [
+        "--build-arg",
+        "BUILD_TAGS=directalerts"
+      ],
+      "want": true
+    },
+    {
+      "name": "whole-segment ⋯ inside a token: builder-id, other repo",
+      "profile": [
+        "--attest",
+        "type=provenance,mode=min,inline-only=true,builder-id=https://github.com/⋯/⋯/actions/runs/⋯/attempts/⋯"
+      ],
+      "runtime": [
+        "--attest",
+        "type=provenance,mode=min,inline-only=true,builder-id=https://github.com/acme/widget/actions/runs/123/attempts/1"
+      ],
+      "want": true
+    },
+    {
+      "name": "literal builder-id: other repo does not match (narrowing)",
+      "profile": [
+        "--attest",
+        "type=provenance,mode=min,inline-only=true,builder-id=https://github.com/acme/gadget/actions/runs/⋯/attempts/⋯"
+      ],
+      "runtime": [
+        "--attest",
+        "type=provenance,mode=min,inline-only=true,builder-id=https://github.com/acme/widget/actions/runs/123/attempts/1"
+      ],
+      "want": false
+    },
+    {
+      "name": "tag registry path ⋯/⋯",
+      "profile": [
+        "--tag",
+        "⋯/⋯"
+      ],
+      "runtime": [
+        "--tag",
+        "docker.io/acme"
+      ],
+      "want": true
+    },
+    {
+      "name": "wildcard-name contract [path, ⋯⋯]: argv0 only",
+      "profile": [
+        "/home/runner/_work/⋯/⋯/target/debug/deps/⋯",
+        "⋯⋯"
+      ],
+      "runtime": [
+        "/home/runner/_work/o/r/target/debug/deps/foo-0a1b"
+      ],
+      "want": true
+    },
+    {
+      "name": "wildcard-name contract [path, ⋯⋯]: any args",
+      "profile": [
+        "/home/runner/_work/⋯/⋯/target/debug/deps/⋯",
+        "⋯⋯"
+      ],
+      "runtime": [
+        "/home/runner/_work/o/r/target/debug/deps/foo-0a1b",
+        "--nocapture",
+        "x"
+      ],
+      "want": true
+    },
+    {
+      "name": "wildcard-name contract [path, ⋯⋯]: other dir",
+      "profile": [
+        "/home/runner/_work/⋯/⋯/target/debug/deps/⋯",
+        "⋯⋯"
+      ],
+      "runtime": [
+        "/tmp/deps/foo"
+      ],
+      "want": false
+    },
+    {
+      "name": "truncated capture tail is literal",
+      "profile": [
+        "--ignore-filename-regex=/home/runner/_work/node\\"
+      ],
+      "runtime": [
+        "--ignore-filename-regex=/home/runner/_work/node\\-agent/x"
+      ],
+      "want": false
+    },
+    {
+      "name": "star stays literal in argv (no over-broadening)",
+      "profile": [
+        "ls",
+        "/plugins/*"
+      ],
+      "runtime": [
+        "ls",
+        "/plugins/evil.so"
       ],
       "want": false
     }
