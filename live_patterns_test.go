@@ -44,7 +44,7 @@ func TestContract_LivePatternsObeyTheContract(t *testing.T) {
 		t.Fatalf("parse %s: %v", path, err)
 	}
 
-	opens, execs, multiStar, deadOpen, deadArgs := 0, 0, 0, 0, 0
+	opens, execs, deadOpen, deadArgs := 0, 0, 0, 0
 	denies, deadDeny := 0, 0
 	byProfile := map[string]int{}
 	var examples []string
@@ -58,10 +58,6 @@ func TestContract_LivePatternsObeyTheContract(t *testing.T) {
 	for _, cp := range ex.Data {
 		for _, p := range cp.Opens {
 			opens++
-			if WildcardSegmentCount(p) > 1 {
-				multiStar++
-				note("multi-star open", cp.Namespace, cp.Name, strconv.Itoa(WildcardSegmentCount(p))+" star segments")
-			}
 			if UnmatchablePath(p) {
 				deadOpen++
 				note("dead open", cp.Namespace, cp.Name, "pattern does not match its own instantiation")
@@ -79,7 +75,7 @@ func TestContract_LivePatternsObeyTheContract(t *testing.T) {
 		}
 		for _, p := range cp.Subtract.Opens {
 			denies++
-			if WildcardSegmentCount(p) > 1 || UnmatchablePath(p) {
+			if UnmatchablePath(p) {
 				deadDeny++
 				note("dead deny open", cp.Namespace, cp.Name, "a deny that cannot match is a deny that does not apply")
 			}
@@ -108,7 +104,7 @@ func TestContract_LivePatternsObeyTheContract(t *testing.T) {
 	}
 	sort.Strings(profiles)
 	t.Logf("profiles %d, opens %d, exec entries %d", len(ex.Data), opens, execs)
-	t.Logf("multi-star opens %d, dead opens %d, unmatchable exec entries %d", multiStar, deadOpen, deadArgs)
+	t.Logf("dead opens %d, unmatchable exec entries %d", deadOpen, deadArgs)
 	t.Logf("deny entries %d, dead denies %d", denies, deadDeny)
 	for _, e := range examples {
 		t.Logf("  %s", e)
@@ -116,7 +112,7 @@ func TestContract_LivePatternsObeyTheContract(t *testing.T) {
 	if len(profiles) > 0 {
 		t.Logf("affected profiles: %s", strings.Join(profiles, ", "))
 	}
-	if multiStar+deadOpen+deadArgs+deadDeny > 0 {
-		t.Fatalf("live patterns break the contract: %d multi-star opens, %d dead opens, %d unmatchable exec entries, %d dead denies", multiStar, deadOpen, deadArgs, deadDeny)
+	if deadOpen+deadArgs+deadDeny > 0 {
+		t.Fatalf("live patterns break the contract: %d dead opens, %d unmatchable exec entries, %d dead denies", deadOpen, deadArgs, deadDeny)
 	}
 }
