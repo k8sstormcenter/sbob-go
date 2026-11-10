@@ -4,16 +4,14 @@ import (
 	"maps"
 	"slices"
 	"strings"
-
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 )
 
-func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, pinned func(string) bool) ([]types.OpenCalls, error) {
+func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool) ([]Open, error) {
 	if opens == nil {
 		return nil, nil
 	}
 
-	dynamicOpens := make(map[string]types.OpenCalls)
+	dynamicOpens := make(map[string]Open)
 	for _, open := range opens {
 		_, _ = AnalyzeOpen(open.Path, analyzer)
 	}
@@ -35,7 +33,7 @@ func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, pinned func(s
 				existing.Flags = newStringSet(slices.Concat(existing.Flags, opens[i].Flags)...).sorted()
 				dynamicOpens[result] = existing
 			} else {
-				dynamicOpen := types.OpenCalls{Path: result, Flags: opens[i].Flags}
+				dynamicOpen := Open{Path: result, Flags: opens[i].Flags}
 				dynamicOpens[result] = dynamicOpen
 			}
 		} else {
@@ -43,7 +41,7 @@ func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, pinned func(s
 		}
 	}
 
-	result := slices.SortedFunc(maps.Values(dynamicOpens), func(a, b types.OpenCalls) int {
+	result := slices.SortedFunc(maps.Values(dynamicOpens), func(a, b Open) int {
 		return strings.Compare(a.Path, b.Path)
 	})
 
@@ -70,7 +68,7 @@ func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, pinned func(s
 // Subsumption check uses the same CompareDynamic the runtime matcher
 // (CEL `ap.was_opened`) uses, so both sides agree on what "covered"
 // means at every depth.
-func consolidateOpens(opens []types.OpenCalls, pinned func(string) bool) []types.OpenCalls {
+func consolidateOpens(opens []Open, pinned func(string) bool) []Open {
 	if len(opens) <= 1 {
 		return opens
 	}
@@ -127,7 +125,7 @@ func consolidateOpens(opens []types.OpenCalls, pinned func(string) bool) []types
 		}
 	}
 
-	out := make([]types.OpenCalls, 0, len(opens))
+	out := make([]Open, 0, len(opens))
 	for i, o := range opens {
 		if keep[i] {
 			out = append(out, o)

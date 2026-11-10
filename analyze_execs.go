@@ -4,8 +4,6 @@ import (
 	"slices"
 	"strconv"
 	"strings"
-
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 )
 
 // tokensKey is an injective encoding of a token list (length-prefixed), for
@@ -23,13 +21,13 @@ func tokensKey(tokens []string) string {
 
 // execKey identifies an ExecCalls entry exactly (path, argv, envs and
 // ArgsRequired), injectively.
-func execKey(e types.ExecCalls) string {
+func execKey(e Exec) string {
 	return tokensKey([]string{e.Path, tokensKey(e.Args), tokensKey(e.Envs), strconv.FormatBool(e.ArgsRequired)})
 }
 
 // compareExecCalls is a total order: path, argv, ArgsRequired (false first),
 // then envs. Slices compare element-wise, so distinct argvs never tie.
-func compareExecCalls(a, b types.ExecCalls) int {
+func compareExecCalls(a, b Exec) int {
 	if c := strings.Compare(a.Path, b.Path); c != 0 {
 		return c
 	}
@@ -126,14 +124,14 @@ func newArgNode() *argNode {
 // compareExecCalls), and AnalyzeExecs(AnalyzeExecs(x)) == AnalyzeExecs(x).
 // The result is never nil: stored profiles encode empty execs as [], as they
 // did with DeflateStringer.
-func AnalyzeExecs(execs []types.ExecCalls, analyzer *ExecAnalyzer) []types.ExecCalls {
+func AnalyzeExecs(execs []Exec, analyzer *ExecAnalyzer) []Exec {
 	if analyzer == nil {
 		analyzer = NewExecAnalyzer(ExecDynamicThreshold, nil)
 	}
 
-	out := make([]types.ExecCalls, 0, len(execs))
+	out := make([]Exec, 0, len(execs))
 	seenPassthrough := stringSet{}
-	byPath := make(map[string][]types.ExecCalls)
+	byPath := make(map[string][]Exec)
 	var paths []string
 	for _, e := range execs {
 		if e.ArgsRequired || len(e.Args) == 0 {
@@ -164,14 +162,14 @@ type argRoot struct {
 }
 
 // analyzeBinaryExecs runs steps 2-5 of AnalyzeExecs for one binary.
-func analyzeBinaryExecs(path string, execs []types.ExecCalls, threshold int) []types.ExecCalls {
+func analyzeBinaryExecs(path string, execs []Exec, threshold int) []Exec {
 	// Absorb covered inputs before any generalization, then again after
 	// argv[0] collapses (which can create duplicates and covered entries).
 	entries := consolidateExecs(dedupeByArgv(execs))
 	entries = consolidateExecs(dedupeByArgv(collapseArgv0(entries, threshold)))
 
 	roots := make(map[argRoot]*argNode)
-	var anyArgs []types.ExecCalls
+	var anyArgs []Exec
 	for _, e := range entries {
 		if slices.Contains(e.Args, ExecArgsWildcard) {
 			anyArgs = append(anyArgs, e)
@@ -195,7 +193,7 @@ func analyzeBinaryExecs(path string, execs []types.ExecCalls, threshold int) []t
 		node.envs.addAll(e.Envs...)
 	}
 
-	var patterns []types.ExecCalls
+	var patterns []Exec
 	for key, root := range roots {
 		collapseArgNode(root, threshold)
 		emitArgPatterns(root, path, []string{key.argv0}, &patterns)
@@ -212,10 +210,10 @@ func analyzeBinaryExecs(path string, execs []types.ExecCalls, threshold int) []t
 
 // dedupeByArgv merges entries with the same argv (injective key), unioning
 // their envs. Order of first appearance is kept.
-func dedupeByArgv(execs []types.ExecCalls) []types.ExecCalls {
+func dedupeByArgv(execs []Exec) []Exec {
 	index := make(map[string]int, len(execs))
 	envs := make([]stringSet, 0, len(execs))
-	out := make([]types.ExecCalls, 0, len(execs))
+	out := make([]Exec, 0, len(execs))
 	for _, e := range execs {
 		key := tokensKey(e.Args)
 		if i, ok := index[key]; ok {
@@ -224,7 +222,7 @@ func dedupeByArgv(execs []types.ExecCalls) []types.ExecCalls {
 		}
 		index[key] = len(out)
 		envs = append(envs, newStringSet(e.Envs...))
-		out = append(out, types.ExecCalls{Path: e.Path, Args: e.Args})
+		out = append(out, Exec{Path: e.Path, Args: e.Args})
 	}
 	for i := range out {
 		out[i].Envs = sortedEnvs(envs[i])
@@ -246,7 +244,7 @@ func dedupeByArgv(execs []types.ExecCalls) []types.ExecCalls {
 // or a whole segment — stays literal data. PathAnalyzer is not used here: its
 // * is opens glob syntax. Every shape is verified with CompareExecArgs against
 // its original. Input is not mutated.
-func collapseArgv0(execs []types.ExecCalls, threshold int) []types.ExecCalls {
+func collapseArgv0(execs []Exec, threshold int) []Exec {
 	distinct := stringSet{}
 	for _, e := range execs {
 		distinct.add(e.Args[0])
@@ -311,7 +309,7 @@ func collapseArgv0(execs []types.ExecCalls, threshold int) []types.ExecCalls {
 		}
 	}
 
-	out := make([]types.ExecCalls, len(execs))
+	out := make([]Exec, len(execs))
 	for i, e := range execs {
 		out[i] = e
 		if shape := mapped[e.Args[0]]; shape != e.Args[0] {
@@ -355,9 +353,9 @@ func mergeArgNode(dst, src *argNode) {
 }
 
 // emitArgPatterns appends one ExecCalls per terminal node under node.
-func emitArgPatterns(node *argNode, path string, prefix []string, out *[]types.ExecCalls) {
+func emitArgPatterns(node *argNode, path string, prefix []string, out *[]Exec) {
 	if node.terminal {
-		*out = append(*out, types.ExecCalls{Path: path, Args: slices.Clone(prefix), Envs: sortedEnvs(node.envs)})
+		*out = append(*out, Exec{Path: path, Args: slices.Clone(prefix), Envs: sortedEnvs(node.envs)})
 	}
 	for arg, child := range node.children {
 		emitArgPatterns(child, path, append(prefix, arg), out)
@@ -366,7 +364,7 @@ func emitArgPatterns(node *argNode, path string, prefix []string, out *[]types.E
 
 // anyArgsPerArgv0 is the per-binary ceiling: one [argv0, ⋯⋯] entry per
 // distinct argv0, carrying the union of that argv0's envs.
-func anyArgsPerArgv0(path string, execs []types.ExecCalls) []types.ExecCalls {
+func anyArgsPerArgv0(path string, execs []Exec) []Exec {
 	envs := make(map[string]stringSet)
 	var argv0s []string
 	for _, e := range execs {
@@ -378,9 +376,9 @@ func anyArgsPerArgv0(path string, execs []types.ExecCalls) []types.ExecCalls {
 		}
 		set.addAll(e.Envs...)
 	}
-	out := make([]types.ExecCalls, 0, len(argv0s))
+	out := make([]Exec, 0, len(argv0s))
 	for _, argv0 := range argv0s {
-		out = append(out, types.ExecCalls{Path: path, Args: []string{argv0, ExecArgsWildcard}, Envs: sortedEnvs(envs[argv0])})
+		out = append(out, Exec{Path: path, Args: []string{argv0, ExecArgsWildcard}, Envs: sortedEnvs(envs[argv0])})
 	}
 	return out
 }
@@ -402,7 +400,7 @@ func anyArgsPerArgv0(path string, execs []types.ExecCalls) []types.ExecCalls {
 // only coverers are absorbed or mutually covering stay, which is always safe.
 // Entries are processed in compareExecCalls order, so the result doesn't
 // depend on input order. Input must be deduped by argv.
-func consolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
+func consolidateExecs(execs []Exec) []Exec {
 	sorted := slices.Clone(execs)
 	slices.SortFunc(sorted, compareExecCalls)
 	// Only patterns can cover anything else (distinct literals never match
@@ -470,7 +468,7 @@ func consolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
 	}
 
 	slices.Sort(kept)
-	out := make([]types.ExecCalls, 0, len(kept))
+	out := make([]Exec, 0, len(kept))
 	for _, i := range kept {
 		e := sorted[i]
 		if set, ok := merged[i]; ok {

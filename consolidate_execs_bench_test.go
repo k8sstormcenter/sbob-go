@@ -3,14 +3,12 @@ package dynamicpathdetector
 import (
 	"fmt"
 	"testing"
-
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 )
 
-func hostLikeExecs(literals, patterns int) []types.ExecCalls {
-	execs := make([]types.ExecCalls, 0, literals+patterns)
+func hostLikeExecs(literals, patterns int) []Exec {
+	execs := make([]Exec, 0, literals+patterns)
 	for i := 0; i < literals; i++ {
-		execs = append(execs, types.ExecCalls{
+		execs = append(execs, Exec{
 			Path: fmt.Sprintf("/usr/bin/tool%d", i%50),
 			Args: []string{fmt.Sprintf("tool%d", i%50), "--config", fmt.Sprintf("/etc/app/%d/conf.yaml", i), "--id", fmt.Sprintf("%d", 100000+i), "run"},
 			Envs: []string{fmt.Sprintf("JOB=%d", i)},
@@ -21,7 +19,7 @@ func hostLikeExecs(literals, patterns int) []types.ExecCalls {
 		if p%2 == 0 {
 			args = []string{fmt.Sprintf("tool%d", p%50), ExecArgsWildcard, "run"}
 		}
-		execs = append(execs, types.ExecCalls{Path: fmt.Sprintf("/usr/bin/tool%d", p%50), Args: args})
+		execs = append(execs, Exec{Path: fmt.Sprintf("/usr/bin/tool%d", p%50), Args: args})
 	}
 	return dedupeByArgv(execs)
 }

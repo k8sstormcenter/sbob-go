@@ -6,16 +6,13 @@ import (
 	"net/netip"
 	"net/url"
 	"strings"
-
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
-	"github.com/kubescape/storage/pkg/apis/softwarecomposition/consts"
 )
 
 func isWildcardPort(port string) bool {
 	return port == "0"
 }
 
-func AnalyzeEndpoints(endpoints *[]types.HTTPEndpoint, analyzer *PathAnalyzer) []types.HTTPEndpoint {
+func AnalyzeEndpoints(endpoints *[]Endpoint, analyzer *PathAnalyzer) []Endpoint {
 	if len(*endpoints) == 0 {
 		return nil
 	}
@@ -29,7 +26,7 @@ func AnalyzeEndpoints(endpoints *[]types.HTTPEndpoint, analyzer *PathAnalyzer) [
 	}
 
 	// Second pass: process endpoints with their original ports.
-	var newEndpoints []*types.HTTPEndpoint
+	var newEndpoints []*Endpoint
 	for _, endpoint := range *endpoints {
 		ep := endpoint
 		processedEndpoint, err := ProcessEndpoint(&ep, analyzer, newEndpoints)
@@ -46,7 +43,7 @@ func AnalyzeEndpoints(endpoints *[]types.HTTPEndpoint, analyzer *PathAnalyzer) [
 	return convertPointerToValueSlice(newEndpoints)
 }
 
-func ProcessEndpoint(endpoint *types.HTTPEndpoint, analyzer *PathAnalyzer, newEndpoints []*types.HTTPEndpoint) (*types.HTTPEndpoint, error) {
+func ProcessEndpoint(endpoint *Endpoint, analyzer *PathAnalyzer, newEndpoints []*Endpoint) (*Endpoint, error) {
 	analyzeURL, err := AnalyzeURL(endpoint.Endpoint, analyzer)
 	if err != nil {
 		return nil, err
@@ -65,7 +62,7 @@ func ProcessEndpoint(endpoint *types.HTTPEndpoint, analyzer *PathAnalyzer, newEn
 			}
 		}
 
-		dynamicEndpoint := types.HTTPEndpoint{
+		dynamicEndpoint := Endpoint{
 			Endpoint:  analyzeURL,
 			Methods:   endpoint.Methods,
 			Internal:  endpoint.Internal,
@@ -190,9 +187,9 @@ func splitEndpointPortAndPath(endpoint string) (string, string) {
 // kubescape/storage#316 — a single :0 entry must NOT cause unrelated
 // concrete-port endpoints to be wildcarded; only same-path same-Internal
 // siblings fold.
-func MergeDuplicateEndpoints(endpoints []*types.HTTPEndpoint) []*types.HTTPEndpoint {
-	seen := make(map[string]*types.HTTPEndpoint)
-	var newEndpoints []*types.HTTPEndpoint
+func MergeDuplicateEndpoints(endpoints []*Endpoint) []*Endpoint {
+	seen := make(map[string]*Endpoint)
+	var newEndpoints []*Endpoint
 	for _, endpoint := range endpoints {
 		key := getEndpointKey(endpoint)
 
@@ -255,7 +252,7 @@ func MergeDuplicateEndpoints(endpoints []*types.HTTPEndpoint) []*types.HTTPEndpo
 // immediately replaces `newEndpoints` with the return value, so there is
 // no live alias today. If a future refactor stores intermediate slice
 // references, swap to a copy-based removal to avoid action-at-a-distance.
-func removeEndpoint(s []*types.HTTPEndpoint, target *types.HTTPEndpoint) []*types.HTTPEndpoint {
+func removeEndpoint(s []*Endpoint, target *Endpoint) []*Endpoint {
 	for i, e := range s {
 		if e == target {
 			return append(s[:i], s[i+1:]...)
@@ -269,7 +266,7 @@ func removeEndpoint(s []*types.HTTPEndpoint, target *types.HTTPEndpoint) []*type
 // Both this function and the wildcard-key construction in
 // MergeDuplicateEndpoints route through buildEndpointKey so the format can't
 // drift between the two callsites.
-func getEndpointKey(endpoint *types.HTTPEndpoint) string {
+func getEndpointKey(endpoint *Endpoint) string {
 	return buildEndpointKey(endpoint.Endpoint, endpoint.Direction, endpoint.Internal)
 }
 
@@ -278,11 +275,11 @@ func getEndpointKey(endpoint *types.HTTPEndpoint) string {
 // two callsites is what allowed the two formats to drift in the past
 // (e.g. one with %s|%s|%t and another with %s|%s|%v). Keep this helper
 // the only producer of the key.
-func buildEndpointKey(endpoint string, direction consts.NetworkDirection, internal bool) string {
+func buildEndpointKey(endpoint string, direction string, internal bool) string {
 	return fmt.Sprintf("%s|%s|%t", endpoint, direction, internal)
 }
 
-func mergeHeaders(existing, new *types.HTTPEndpoint) error {
+func mergeHeaders(existing, new *Endpoint) error {
 	existingHeaders, err := existing.GetHeaders()
 	if err != nil {
 		return err
@@ -310,8 +307,8 @@ func mergeHeaders(existing, new *types.HTTPEndpoint) error {
 	return nil
 }
 
-func convertPointerToValueSlice(m []*types.HTTPEndpoint) []types.HTTPEndpoint {
-	result := make([]types.HTTPEndpoint, 0, len(m))
+func convertPointerToValueSlice(m []*Endpoint) []Endpoint {
+	result := make([]Endpoint, 0, len(m))
 	for _, v := range m {
 		if v != nil {
 			result = append(result, *v)

@@ -2,8 +2,6 @@ package dynamicpathdetector
 
 import (
 	"strings"
-
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 )
 
 type execPatternNode struct {
@@ -26,7 +24,7 @@ type execSegmentNode struct {
 }
 
 type execPatternIndex struct {
-	execs      []types.ExecCalls
+	execs      []Exec
 	roots      map[int]*execPatternNode
 	anyByFirst map[string][]int
 	anyOther   []int
@@ -36,7 +34,7 @@ type execPatternIndex struct {
 	segNext    []*execSegmentNode
 }
 
-func newExecPatternIndex(execs []types.ExecCalls, patterns []int) *execPatternIndex {
+func newExecPatternIndex(execs []Exec, patterns []int) *execPatternIndex {
 	idx := &execPatternIndex{execs: execs, roots: make(map[int]*execPatternNode), anyByFirst: make(map[string][]int)}
 	for _, j := range patterns {
 		idx.insert(j, execs[j].Args)
@@ -233,7 +231,7 @@ type openPatternNode struct {
 }
 
 type openPatternIndex struct {
-	opens    []types.OpenCalls
+	opens    []Open
 	root     *openPatternNode
 	fallback []int
 	states   map[*openPatternNode]bool
@@ -241,7 +239,7 @@ type openPatternIndex struct {
 	segments []string
 }
 
-func newOpenPatternIndex(opens []types.OpenCalls, patterns []int) *openPatternIndex {
+func newOpenPatternIndex(opens []Open, patterns []int) *openPatternIndex {
 	idx := &openPatternIndex{opens: opens, root: &openPatternNode{}, states: make(map[*openPatternNode]bool), next: make(map[*openPatternNode]bool)}
 	for _, pi := range patterns {
 		p := opens[pi].Path

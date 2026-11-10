@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	dp "github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -147,16 +146,16 @@ func TestFewThreadsStillCollapse(t *testing.T) {
 // The same thing at profile scope: AnalyzeOpens is what runs on save, so this
 // is the shape that actually reaches storage.
 func TestAnalyzeOpensFoldsRecordedTids(t *testing.T) {
-	var opens []types.OpenCalls
+	var opens []dp.Open
 	for pid := 100; pid < 104; pid++ {
 		for tid := pid; tid < pid+3; tid++ {
 			opens = append(opens,
-				types.OpenCalls{Path: fmt.Sprintf("/proc/%d/task/%d/status", pid, tid), Flags: []string{"O_RDONLY"}},
-				types.OpenCalls{Path: fmt.Sprintf("/proc/%d/task/%d/comm", pid, tid), Flags: []string{"O_RDONLY"}},
+				dp.Open{Path: fmt.Sprintf("/proc/%d/task/%d/status", pid, tid), Flags: []string{"O_RDONLY"}},
+				dp.Open{Path: fmt.Sprintf("/proc/%d/task/%d/comm", pid, tid), Flags: []string{"O_RDONLY"}},
 			)
 		}
 	}
-	opens = append(opens, types.OpenCalls{Path: "/proc/self/status", Flags: []string{"O_RDONLY"}})
+	opens = append(opens, dp.Open{Path: "/proc/self/status", Flags: []string{"O_RDONLY"}})
 
 	got, err := dp.AnalyzeOpens(opens, dp.NewPathAnalyzer(dp.OpenDynamicThreshold), nil)
 	require.NoError(t, err)
@@ -175,7 +174,7 @@ func TestAnalyzeOpensFoldsRecordedTids(t *testing.T) {
 // A profile already carrying literal tids — written by an agent that predates
 // this rule — folds on the next save rather than staying poisoned.
 func TestPreexistingLiteralsFoldOnResave(t *testing.T) {
-	stored := []types.OpenCalls{
+	stored := []dp.Open{
 		{Path: "/proc/8/task/8/status", Flags: []string{"O_RDONLY"}},
 		{Path: "/proc/8/task/9/status", Flags: []string{"O_RDONLY"}},
 		{Path: "/proc/9/task/10/status", Flags: []string{"O_RDONLY", "O_CLOEXEC"}},

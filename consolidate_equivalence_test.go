@@ -8,11 +8,10 @@ import (
 	"testing"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	"github.com/stretchr/testify/require"
 )
 
-func referenceConsolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
+func referenceConsolidateExecs(execs []Exec) []Exec {
 	sorted := slices.Clone(execs)
 	slices.SortFunc(sorted, compareExecCalls)
 	var patterns []int
@@ -77,7 +76,7 @@ func referenceConsolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
 		set.Append(sorted[i].Envs...)
 	}
 	slices.Sort(kept)
-	out := make([]types.ExecCalls, 0, len(kept))
+	out := make([]Exec, 0, len(kept))
 	for _, i := range kept {
 		e := sorted[i]
 		if set, ok := merged[i]; ok {
@@ -90,7 +89,7 @@ func referenceConsolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
 	return out
 }
 
-func referenceConsolidateOpens(opens []types.OpenCalls, sbomSet mapset.Set[string]) []types.OpenCalls {
+func referenceConsolidateOpens(opens []Open, sbomSet mapset.Set[string]) []Open {
 	if len(opens) <= 1 {
 		return opens
 	}
@@ -130,7 +129,7 @@ func referenceConsolidateOpens(opens []types.OpenCalls, sbomSet mapset.Set[strin
 			}
 		}
 	}
-	out := make([]types.OpenCalls, 0, len(opens))
+	out := make([]Open, 0, len(opens))
 	for i, o := range opens {
 		if keep[i] {
 			out = append(out, o)
@@ -144,9 +143,9 @@ var equivalenceTokens = []string{
 	DynamicIdentifier, ExecArgsWildcard, "*", "x*", "", "/", "a/", "/a", "a//b", "⋯a", "x/⋯y", "x⋯⋯y",
 }
 
-func randomExecs(r *rand.Rand, n int) []types.ExecCalls {
+func randomExecs(r *rand.Rand, n int) []Exec {
 	seen := map[string]bool{}
-	var out []types.ExecCalls
+	var out []Exec
 	for len(out) < n {
 		argc := 1 + r.Intn(4)
 		args := make([]string, argc)
@@ -162,7 +161,7 @@ func randomExecs(r *rand.Rand, n int) []types.ExecCalls {
 		if r.Intn(2) == 0 {
 			envs = []string{fmt.Sprintf("E=%d", r.Intn(3))}
 		}
-		out = append(out, types.ExecCalls{Path: "/bin/p", Args: args, Envs: envs})
+		out = append(out, Exec{Path: "/bin/p", Args: args, Envs: envs})
 	}
 	return out
 }
@@ -179,9 +178,9 @@ func TestConsolidateExecsMatchesReference(t *testing.T) {
 
 var equivalenceSegments = []string{"a", "b", "c", "⋯", "*", "", "a*", "⋯b", "d"}
 
-func randomOpens(r *rand.Rand, n int) []types.OpenCalls {
+func randomOpens(r *rand.Rand, n int) []Open {
 	seen := map[string]bool{}
-	var out []types.OpenCalls
+	var out []Open
 	for len(out) < n {
 		depth := 1 + r.Intn(5)
 		var b strings.Builder
@@ -202,16 +201,16 @@ func randomOpens(r *rand.Rand, n int) []types.OpenCalls {
 			continue
 		}
 		seen[p] = true
-		out = append(out, types.OpenCalls{Path: p, Flags: []string{fmt.Sprintf("F%d", r.Intn(3))}})
+		out = append(out, Open{Path: p, Flags: []string{fmt.Sprintf("F%d", r.Intn(3))}})
 	}
-	slices.SortFunc(out, func(a, b types.OpenCalls) int { return strings.Compare(a.Path, b.Path) })
+	slices.SortFunc(out, func(a, b Open) int { return strings.Compare(a.Path, b.Path) })
 	return out
 }
 
-func cloneOpens(opens []types.OpenCalls) []types.OpenCalls {
-	out := make([]types.OpenCalls, len(opens))
+func cloneOpens(opens []Open) []Open {
+	out := make([]Open, len(opens))
 	for i, o := range opens {
-		out[i] = types.OpenCalls{Path: o.Path, Flags: slices.Clone(o.Flags)}
+		out[i] = Open{Path: o.Path, Flags: slices.Clone(o.Flags)}
 	}
 	return out
 }

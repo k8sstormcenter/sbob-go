@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	"github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -713,7 +712,7 @@ func TestHasPrefixAtBoundary_EmptyPrefix(t *testing.T) {
 // merge the specific-port entry must be absorbed into the wildcard's
 // Methods set, with no duplicate entry surviving.
 func TestBuildEndpointKey_SharedFormat(t *testing.T) {
-	in := []*types.HTTPEndpoint{
+	in := []*dynamicpathdetector.Endpoint{
 		{Endpoint: ":0/api/v1/users", Direction: "internal", Internal: true, Methods: []string{"GET"}},
 		{Endpoint: ":8080/api/v1/users", Direction: "internal", Internal: true, Methods: []string{"POST"}},
 	}

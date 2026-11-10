@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	"github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,7 +28,7 @@ import (
 
 // extractPathsFromOpens returns just the paths from a slice of OpenCalls,
 // for cleaner test assertions.
-func extractPathsFromOpens(opens []types.OpenCalls) []string {
+func extractPathsFromOpens(opens []dynamicpathdetector.Open) []string {
 	out := make([]string, len(opens))
 	for i, o := range opens {
 		out[i] = o.Path
@@ -46,7 +45,7 @@ func TestConsolidateOpens_DynamicIdentifierSubsumesSiblings(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(50, []dynamicpathdetector.CollapseConfig{
 		{Prefix: "/etc", Threshold: 3},
 	})
-	input := []types.OpenCalls{
+	input := []dynamicpathdetector.Open{
 		{Path: "/etc/file1", Flags: []string{"O_RDONLY"}},
 		{Path: "/etc/file2", Flags: []string{"O_RDONLY"}},
 		{Path: "/etc/file3", Flags: []string{"O_RDONLY"}},
@@ -70,7 +69,7 @@ func TestConsolidateOpens_DynamicIdentifierDoesNotSubsumeMultiSegment(t *testing
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(50, []dynamicpathdetector.CollapseConfig{
 		{Prefix: "/etc", Threshold: 3},
 	})
-	input := []types.OpenCalls{
+	input := []dynamicpathdetector.Open{
 		{Path: "/etc/file1", Flags: []string{"O_RDONLY"}},
 		{Path: "/etc/file2", Flags: []string{"O_RDONLY"}},
 		{Path: "/etc/file3", Flags: []string{"O_RDONLY"}},
@@ -99,7 +98,7 @@ func TestConsolidateOpens_FlagsMergeIntoPattern(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(50, []dynamicpathdetector.CollapseConfig{
 		{Prefix: "/tmp", Threshold: 2},
 	})
-	input := []types.OpenCalls{
+	input := []dynamicpathdetector.Open{
 		{Path: "/tmp/a", Flags: []string{"O_RDONLY"}},
 		{Path: "/tmp/b", Flags: []string{"O_WRONLY"}},
 		{Path: "/tmp/c", Flags: []string{"O_RDWR"}},
@@ -124,7 +123,7 @@ func TestConsolidateOpens_SbomPathsNeverSubsumed(t *testing.T) {
 		{Prefix: "/usr/lib", Threshold: 3},
 	})
 	sbomSet := mapset.NewThreadUnsafeSet[string]("/usr/lib/libcrypto.so.3")
-	input := []types.OpenCalls{
+	input := []dynamicpathdetector.Open{
 		{Path: "/usr/lib/libcrypto.so.3", Flags: []string{"O_RDONLY"}},
 		{Path: "/usr/lib/libssl.so.3", Flags: []string{"O_RDONLY"}},
 		{Path: "/usr/lib/libz.so.1", Flags: []string{"O_RDONLY"}},
@@ -146,7 +145,7 @@ func TestConsolidateOpens_SbomPathsNeverSubsumed(t *testing.T) {
 // pass-through. Two distinct /etc paths in, two paths out.
 func TestConsolidateOpens_NoPatternsNoConsolidation(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(100, nil)
-	input := []types.OpenCalls{
+	input := []dynamicpathdetector.Open{
 		{Path: "/etc/hosts", Flags: []string{"O_RDONLY"}},
 		{Path: "/etc/passwd", Flags: []string{"O_RDONLY"}},
 	}
@@ -171,7 +170,7 @@ func TestConsolidateOpens_TrailingStarSubsumesChild(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(50, []dynamicpathdetector.CollapseConfig{
 		{Prefix: "/etc", Threshold: 1},
 	})
-	input := []types.OpenCalls{
+	input := []dynamicpathdetector.Open{
 		{Path: "/etc/foo", Flags: []string{"O_RDONLY"}},
 		{Path: "/etc/bar", Flags: []string{"O_RDONLY"}},
 	}

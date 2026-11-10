@@ -21,7 +21,6 @@ import (
 	"slices"
 	"testing"
 
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	"github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -32,11 +31,11 @@ const (
 	anyArgs = dynamicpathdetector.ExecArgsWildcard
 )
 
-func exec(path string, args ...string) types.ExecCalls {
-	return types.ExecCalls{Path: path, Args: args}
+func exec(path string, args ...string) dynamicpathdetector.Exec {
+	return dynamicpathdetector.Exec{Path: path, Args: args}
 }
 
-func execArgs(execs []types.ExecCalls) [][]string {
+func execArgs(execs []dynamicpathdetector.Exec) [][]string {
 	out := make([][]string, len(execs))
 	for i, e := range execs {
 		out[i] = e.Args
@@ -48,7 +47,7 @@ func execArgs(execs []types.ExecCalls) [][]string {
 // fidelity contract DeflateStringer kept), so empty input yields a non-nil
 // empty slice.
 func TestAnalyzeExecs_EmptyInputIsNonNilEmpty(t *testing.T) {
-	for _, in := range [][]types.ExecCalls{nil, {}} {
+	for _, in := range [][]dynamicpathdetector.Exec{nil, {}} {
 		out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
 		assert.NotNil(t, out)
 		assert.Empty(t, out)
@@ -56,14 +55,14 @@ func TestAnalyzeExecs_EmptyInputIsNonNilEmpty(t *testing.T) {
 }
 
 func TestAnalyzeExecs_BelowThresholdKeepsLiteralsAndDedupes(t *testing.T) {
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		exec("/usr/bin/ls", "/usr/bin/ls", "-la"),
 		exec("/usr/bin/cat", "/usr/bin/cat", "/etc/hosts"),
 		exec("/usr/bin/ls", "/usr/bin/ls", "-la"),
 		exec("/usr/bin/ls", "/usr/bin/ls", "/tmp"),
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
-	assert.Equal(t, []types.ExecCalls{
+	assert.Equal(t, []dynamicpathdetector.Exec{
 		exec("/usr/bin/cat", "/usr/bin/cat", "/etc/hosts"),
 		exec("/usr/bin/ls", "/usr/bin/ls", "-la"),
 		exec("/usr/bin/ls", "/usr/bin/ls", "/tmp"),
@@ -71,16 +70,16 @@ func TestAnalyzeExecs_BelowThresholdKeepsLiteralsAndDedupes(t *testing.T) {
 }
 
 func TestAnalyzeExecs_CollapsesHighVarietyPosition(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 4; i++ {
 		in = append(in, exec("/usr/bin/grep", "grep", fmt.Sprintf("pattern-%d", i)))
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/grep", "grep", dyn)}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/grep", "grep", dyn)}, out)
 }
 
 func TestAnalyzeExecs_DifferentArgCountsDoNotMerge(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 4; i++ {
 		in = append(in, exec("/usr/bin/grep", "grep", fmt.Sprintf("pattern-%d", i)))
 	}
@@ -93,7 +92,7 @@ func TestAnalyzeExecs_DifferentArgCountsDoNotMerge(t *testing.T) {
 }
 
 func TestAnalyzeExecs_CollapsesOnlyTheVaryingLevel(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for _, mode := range []string{"+x", "755"} {
 		for i := 0; i < 5; i++ {
 			in = append(in, exec("/usr/bin/chmod", "chmod", mode, fmt.Sprintf("/tmp/file-%d", i)))
@@ -107,7 +106,7 @@ func TestAnalyzeExecs_CollapsesOnlyTheVaryingLevel(t *testing.T) {
 }
 
 func TestAnalyzeExecs_KeepsArgv0LiteralBelowThreshold(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for _, argv0 := range []string{"sh", "/bin/sh"} {
 		for i := 0; i < 4; i++ {
 			in = append(in, exec("/usr/bin/dash", argv0, fmt.Sprintf("script-%d", i)))
@@ -122,29 +121,29 @@ func TestAnalyzeExecs_KeepsArgv0LiteralBelowThreshold(t *testing.T) {
 
 func TestAnalyzeExecs_PerBinaryCeilingFallsBackToAnyArgs(t *testing.T) {
 	// Three different argv lengths produce three patterns, over a threshold of 2.
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "bash"),
 		exec("/usr/bin/bash", "bash", "-c", "id"),
 		exec("/usr/bin/bash", "bash", "/opt/setup.sh", "-c", "run"),
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(2, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/bash", "bash", anyArgs)}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/bash", "bash", anyArgs)}, out)
 }
 
 func TestAnalyzeExecs_PassesThroughArgsRequiredAndEmptyArgs(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 4; i++ {
 		e := exec("/usr/bin/curl", "curl", fmt.Sprintf("https://host-%d", i))
 		e.ArgsRequired = true
 		in = append(in, e)
 	}
-	in = append(in, types.ExecCalls{Path: "/usr/bin/true"})
+	in = append(in, dynamicpathdetector.Exec{Path: "/usr/bin/true"})
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
 	assert.ElementsMatch(t, in, out)
 }
 
 func TestAnalyzeExecs_UnionsEnvsOfMergedEntries(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 4; i++ {
 		e := exec("/usr/bin/grep", "grep", fmt.Sprintf("pattern-%d", i))
 		e.Envs = []string{fmt.Sprintf("VAR%d=1", i%2)}
@@ -156,26 +155,26 @@ func TestAnalyzeExecs_UnionsEnvsOfMergedEntries(t *testing.T) {
 }
 
 func TestAnalyzeExecs_ExistingPatternAbsorbsNewLiteral(t *testing.T) {
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		exec("/usr/bin/grep", "grep", dyn),
 		exec("/usr/bin/grep", "grep", "new-pattern"),
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/grep", "grep", dyn)}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/grep", "grep", dyn)}, out)
 }
 
 func TestAnalyzeExecs_AnyArgsPatternAbsorbsLiterals(t *testing.T) {
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "bash", anyArgs),
 		exec("/usr/bin/bash", "bash", "-c", "getconf _NPROCESSORS_ONLN"),
 		exec("/usr/bin/bash", "bash"),
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/bash", "bash", anyArgs)}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/bash", "bash", anyArgs)}, out)
 }
 
 func TestAnalyzeExecs_CollapseConfigsOverrideThresholdPerBinary(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 4; i++ {
 		in = append(in, exec("/usr/bin/grep", "grep", fmt.Sprintf("pattern-%d", i)))
 		in = append(in, exec("/usr/bin/sed", "sed", fmt.Sprintf("s/%d//", i)))
@@ -195,7 +194,7 @@ func TestAnalyzeExecs_CollapseConfigsOverrideThresholdPerBinary(t *testing.T) {
 }
 
 func TestAnalyzeExecs_NonPositiveThresholdUsesDefault(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < dynamicpathdetector.ExecDynamicThreshold; i++ {
 		in = append(in, exec("/usr/bin/grep", "grep", fmt.Sprintf("pattern-%d", i)))
 	}
@@ -230,8 +229,8 @@ func TestAnalyzeExecs_EveryInputStillMatches(t *testing.T) {
 
 // execFixture mixes collapsible and literal argvs across several binaries,
 // argv lengths and nesting levels.
-func execFixture() []types.ExecCalls {
-	var in []types.ExecCalls
+func execFixture() []dynamicpathdetector.Exec {
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 6; i++ {
 		in = append(in, exec("/usr/bin/grep", "grep", fmt.Sprintf("p%d", i)))
 		in = append(in, exec("/usr/bin/grep", "grep", "-E", fmt.Sprintf("p%d", i)))
@@ -251,27 +250,27 @@ func execFixture() []types.ExecCalls {
 // more than threshold distinct argv[0] values, argv[0] collapses by path
 // shape so the profile stays bounded and the other arguments stay checked.
 func TestAnalyzeExecs_CollapsesHighVarietyArgv0ByPathShape(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 200; i++ {
 		in = append(in, exec("/usr/bin/bash", fmt.Sprintf("/tmp/tmp.%d/run.sh", i), "--fixed"))
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(50, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/bash", "/tmp/"+dyn+"/run.sh", "--fixed")}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/bash", "/tmp/"+dyn+"/run.sh", "--fixed")}, out)
 	assertCovers(t, out, in)
 }
 
 func TestAnalyzeExecs_CollapsesUnshapedArgv0ToDynamic(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for _, name := range []string{"awk", "gawk", "nawk", "mawk", "busybox"} {
 		in = append(in, exec("/usr/bin/gawk", name, "--version"))
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/gawk", dyn, "--version")}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/gawk", dyn, "--version")}, out)
 	assertCovers(t, out, in)
 }
 
 func TestAnalyzeExecs_Argv0ThresholdOneStaysMatchable(t *testing.T) {
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "/opt/a/run.sh", "x"),
 		exec("/usr/bin/bash", "/opt/b/run.sh", "x"),
 	}
@@ -283,12 +282,12 @@ func TestAnalyzeExecs_Argv0ThresholdOneStaysMatchable(t *testing.T) {
 }
 
 func TestAnalyzeExecs_Argv0PatternAbsorbsNewLiteral(t *testing.T) {
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "/tmp/"+dyn+"/run.sh", "--fixed"),
 		exec("/usr/bin/bash", "/tmp/tmp.999/run.sh", "--fixed"),
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(50, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/bash", "/tmp/"+dyn+"/run.sh", "--fixed")}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/bash", "/tmp/"+dyn+"/run.sh", "--fixed")}, out)
 }
 
 // Entries that tie on path and argv are ordered by ArgsRequired, then Envs,
@@ -299,8 +298,8 @@ func TestAnalyzeExecs_TotalOrderOnTies(t *testing.T) {
 	strictEnv := strict
 	strictEnv.Envs = []string{"A=1"}
 	learned := exec("/usr/bin/curl", "curl", "x")
-	want := []types.ExecCalls{learned, strict, strictEnv}
-	for _, in := range [][]types.ExecCalls{
+	want := []dynamicpathdetector.Exec{learned, strict, strictEnv}
+	for _, in := range [][]dynamicpathdetector.Exec{
 		{strictEnv, strict, learned},
 		{strict, learned, strictEnv},
 		{learned, strictEnv, strict},
@@ -309,7 +308,7 @@ func TestAnalyzeExecs_TotalOrderOnTies(t *testing.T) {
 	}
 }
 
-func assertCovers(t *testing.T, out, in []types.ExecCalls) {
+func assertCovers(t *testing.T, out, in []dynamicpathdetector.Exec) {
 	t.Helper()
 	for _, e := range in {
 		covered := false
@@ -327,14 +326,14 @@ func assertCovers(t *testing.T, out, in []types.ExecCalls) {
 // are absorbed. Literals an existing pattern already covers add no allowed
 // behavior and must not broaden the binary to [bash, ⋯⋯].
 func TestAnalyzeExecs_CeilingCountsAfterAbsorption(t *testing.T) {
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "bash", "-c", anyArgs),
 		exec("/usr/bin/bash", "bash", "-c"),
 		exec("/usr/bin/bash", "bash", "-c", "a"),
 		exec("/usr/bin/bash", "bash", "-c", "a", "b"),
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/bash", "bash", "-c", anyArgs)}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/bash", "bash", "-c", anyArgs)}, out)
 	for _, o := range out {
 		assert.False(t, dynamicpathdetector.CompareExecArgs(o.Args, []string{"bash", "-i"}), "bash -i must stay disallowed")
 	}
@@ -343,16 +342,16 @@ func TestAnalyzeExecs_CeilingCountsAfterAbsorption(t *testing.T) {
 // Incremental saves: each save deflates the stored result plus a new delta.
 // Covered deltas must keep the fixed -c constraint across many saves.
 func TestAnalyzeExecs_IncrementalSavesKeepCoveredConstraint(t *testing.T) {
-	stored := []types.ExecCalls{exec("/usr/bin/bash", "bash", "-c", anyArgs)}
+	stored := []dynamicpathdetector.Exec{exec("/usr/bin/bash", "bash", "-c", anyArgs)}
 	for i := 0; i < 10; i++ {
-		delta := []types.ExecCalls{
+		delta := []dynamicpathdetector.Exec{
 			exec("/usr/bin/bash", "bash", "-c", fmt.Sprintf("cmd-%d", i)),
 			exec("/usr/bin/bash", "bash", "-c", fmt.Sprintf("cmd-%d", i), "--flag"),
 			exec("/usr/bin/bash", "bash", "-c"),
 		}
 		stored = dynamicpathdetector.AnalyzeExecs(append(stored, delta...), dynamicpathdetector.NewExecAnalyzer(3, nil))
 	}
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/bash", "bash", "-c", anyArgs)}, stored)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/bash", "bash", "-c", anyArgs)}, stored)
 }
 
 // Review (#414): duplicate wildcard patterns are deduped by path and argv,
@@ -362,14 +361,14 @@ func TestAnalyzeExecs_DedupesWildcardPatternsAndUnionsEnvs(t *testing.T) {
 	a.Envs = []string{"A=1"}
 	b := exec("/usr/bin/bash", "bash", "-c", anyArgs)
 	b.Envs = []string{"B=2"}
-	out := dynamicpathdetector.AnalyzeExecs([]types.ExecCalls{a, b, a}, dynamicpathdetector.NewExecAnalyzer(3, nil))
+	out := dynamicpathdetector.AnalyzeExecs([]dynamicpathdetector.Exec{a, b, a}, dynamicpathdetector.NewExecAnalyzer(3, nil))
 	want := exec("/usr/bin/bash", "bash", "-c", anyArgs)
 	want.Envs = []string{"A=1", "B=2"}
-	assert.Equal(t, []types.ExecCalls{want}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{want}, out)
 }
 
 func TestAnalyzeExecs_DuplicateWildcardsDoNotTriggerCeiling(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 5; i++ {
 		in = append(in, exec("/usr/bin/bash", "bash", "-c", anyArgs))
 	}
@@ -384,7 +383,7 @@ func TestAnalyzeExecs_DuplicateWildcardsDoNotTriggerCeiling(t *testing.T) {
 // Review (#414, round 2): covered deltas numerous enough to generalize in the
 // trie must still be absorbed, so they never broaden the binary.
 func TestAnalyzeExecs_CoveredDeltasAboveTrieThresholdDoNotWiden(t *testing.T) {
-	in := []types.ExecCalls{exec("/usr/bin/bash", "bash", "-c", anyArgs)}
+	in := []dynamicpathdetector.Exec{exec("/usr/bin/bash", "bash", "-c", anyArgs)}
 	for i := 0; i < 3; i++ {
 		in = append(in,
 			exec("/usr/bin/bash", "bash", "-c", fmt.Sprintf("a%d", i)),
@@ -392,16 +391,16 @@ func TestAnalyzeExecs_CoveredDeltasAboveTrieThresholdDoNotWiden(t *testing.T) {
 		)
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(2, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/bash", "bash", "-c", anyArgs)}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/bash", "bash", "-c", anyArgs)}, out)
 }
 
 func TestAnalyzeExecs_IncrementalSavesWithDeltasAboveTrieThreshold(t *testing.T) {
-	stored := []types.ExecCalls{
+	stored := []dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "bash", "-c", anyArgs),
 		exec("/usr/bin/bash", "bash", "/opt/setup.sh"),
 	}
 	for i := 0; i < 5; i++ {
-		var delta []types.ExecCalls
+		var delta []dynamicpathdetector.Exec
 		for j := 0; j < 4; j++ {
 			delta = append(delta,
 				exec("/usr/bin/bash", "bash", "-c", fmt.Sprintf("cmd-%d-%d", i, j)),
@@ -422,13 +421,13 @@ func TestAnalyzeExecs_IncrementalSavesWithDeltasAboveTrieThreshold(t *testing.T)
 // A pattern subsumed by another pattern is absorbed, but a single-arg ⋯ must
 // never be treated as covering ⋯⋯ (zero or more args).
 func TestAnalyzeExecs_PatternSubsumptionIsSound(t *testing.T) {
-	out := dynamicpathdetector.AnalyzeExecs([]types.ExecCalls{
+	out := dynamicpathdetector.AnalyzeExecs([]dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "bash", "-c", anyArgs),
 		exec("/usr/bin/bash", "bash", "-c", dyn),
 	}, dynamicpathdetector.NewExecAnalyzer(3, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/usr/bin/bash", "bash", "-c", anyArgs)}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/usr/bin/bash", "bash", "-c", anyArgs)}, out)
 
-	out = dynamicpathdetector.AnalyzeExecs([]types.ExecCalls{
+	out = dynamicpathdetector.AnalyzeExecs([]dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "bash", dyn),
 		exec("/usr/bin/bash", "bash", anyArgs),
 	}, dynamicpathdetector.NewExecAnalyzer(3, nil))
@@ -439,7 +438,7 @@ func TestAnalyzeExecs_PatternSubsumptionIsSound(t *testing.T) {
 // Review (#414, round 2): argv keys must be injective. U+241F is valid
 // argument data and must not make distinct vectors collide.
 func TestAnalyzeExecs_SeparatorInsideArgsDoesNotCollide(t *testing.T) {
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		exec("/usr/bin/bash", "bash", "a␟b", anyArgs),
 		exec("/usr/bin/bash", "bash", "a", "b", anyArgs),
 		exec("/usr/bin/grep", "grep", "x␟y"),
@@ -453,7 +452,7 @@ func TestAnalyzeExecs_SeparatorInsideArgsDoesNotCollide(t *testing.T) {
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(3, nil))
 	assertCovers(t, out, in)
 	assert.Len(t, out, 6)
-	reversed := append([]types.ExecCalls(nil), in...)
+	reversed := append([]dynamicpathdetector.Exec(nil), in...)
 	slices.Reverse(reversed)
 	assert.Equal(t, out, dynamicpathdetector.AnalyzeExecs(reversed, dynamicpathdetector.NewExecAnalyzer(3, nil)),
 		"output order must not depend on input order even when joined args collide")
@@ -463,14 +462,14 @@ func TestAnalyzeExecs_SeparatorInsideArgsDoesNotCollide(t *testing.T) {
 // collapses, so they can't widen a stored script-path constraint.
 func TestAnalyzeExecs_CoveredArgv0DeltasDoNotWidenScriptPath(t *testing.T) {
 	stored := exec("/bin/bash", "/tmp/"+dyn+"/"+dyn+"/run.sh", "--fixed")
-	in := []types.ExecCalls{
+	in := []dynamicpathdetector.Exec{
 		stored,
 		exec("/bin/bash", "/tmp/a/1/run.sh", "--fixed"),
 		exec("/bin/bash", "/tmp/b/2/run.sh", "--fixed"),
 		exec("/bin/bash", "/tmp/c/3/run.sh", "--fixed"),
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(2, nil))
-	assert.Equal(t, []types.ExecCalls{stored}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{stored}, out)
 	for _, o := range out {
 		assert.False(t, dynamicpathdetector.CompareExecArgs(o.Args, []string{"/evil/run.sh", "--fixed"}), "/evil/run.sh must stay disallowed")
 	}
@@ -479,13 +478,13 @@ func TestAnalyzeExecs_CoveredArgv0DeltasDoNotWidenScriptPath(t *testing.T) {
 // Adjacent varying segments must collapse to per-segment ⋯, not to a bare ⋯
 // that would accept any script path.
 func TestAnalyzeExecs_DeepArgv0VarietyKeepsPathShape(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for i := 0; i < 5; i++ {
 		in = append(in, exec("/bin/bash", fmt.Sprintf("/tmp/a%d/b%d/run.sh", i, i), "--fixed"))
 	}
 	analyzer := func() *dynamicpathdetector.ExecAnalyzer { return dynamicpathdetector.NewExecAnalyzer(2, nil) }
 	out := dynamicpathdetector.AnalyzeExecs(in, analyzer())
-	assert.Equal(t, []types.ExecCalls{exec("/bin/bash", "/tmp/"+dyn+"/"+dyn+"/run.sh", "--fixed")}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/bin/bash", "/tmp/"+dyn+"/"+dyn+"/run.sh", "--fixed")}, out)
 	assertCovers(t, out, in)
 	assert.Equal(t, out, dynamicpathdetector.AnalyzeExecs(append(out, in...), analyzer()), "resave with covered deltas is a no-op")
 }
@@ -493,12 +492,12 @@ func TestAnalyzeExecs_DeepArgv0VarietyKeepsPathShape(t *testing.T) {
 // Review (#414, round 4): a * embedded in a segment is literal data, not the
 // analyzer's adjacent-⋯ compaction; it must not discard the path shape.
 func TestAnalyzeExecs_EmbeddedLiteralAsteriskKeepsArgv0Shape(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for _, dir := range []string{"a", "b", "c"} {
 		in = append(in, exec("/bin/bash", "/tmp/star*dir/"+dir+"/run.sh", "--fixed"))
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(2, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/bin/bash", "/tmp/star*dir/"+dyn+"/run.sh", "--fixed")}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/bin/bash", "/tmp/star*dir/"+dyn+"/run.sh", "--fixed")}, out)
 	assertCovers(t, out, in)
 	assert.False(t, dynamicpathdetector.CompareExecArgs(out[0].Args, []string{"/evil/run.sh", "--fixed"}))
 }
@@ -506,11 +505,11 @@ func TestAnalyzeExecs_EmbeddedLiteralAsteriskKeepsArgv0Shape(t *testing.T) {
 // A directory literally named * is a standalone * segment that is not
 // compaction either; the shape must keep it as a literal.
 func TestAnalyzeExecs_LiteralAsteriskSegmentKeepsArgv0Shape(t *testing.T) {
-	var in []types.ExecCalls
+	var in []dynamicpathdetector.Exec
 	for _, dir := range []string{"a", "b", "c"} {
 		in = append(in, exec("/bin/bash", "/tmp/*/"+dir+"/run.sh", "--fixed"))
 	}
 	out := dynamicpathdetector.AnalyzeExecs(in, dynamicpathdetector.NewExecAnalyzer(2, nil))
-	assert.Equal(t, []types.ExecCalls{exec("/bin/bash", "/tmp/*/"+dyn+"/run.sh", "--fixed")}, out)
+	assert.Equal(t, []dynamicpathdetector.Exec{exec("/bin/bash", "/tmp/*/"+dyn+"/run.sh", "--fixed")}, out)
 	assertCovers(t, out, in)
 }

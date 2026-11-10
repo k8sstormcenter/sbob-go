@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	dp "github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -26,7 +25,7 @@ import (
 // Routing pid and tid through the reserved key instead keeps the named
 // siblings intact while still folding the identifiers.
 func TestAgentEmittedShapeKeepsNamedProcReads(t *testing.T) {
-	opens := []types.OpenCalls{
+	opens := []dp.Open{
 		{Path: "/proc/" + dynSeg + "/task/5678/status", Flags: []string{"O_RDONLY"}},
 		{Path: "/proc/" + dynSeg + "/task/5679/status", Flags: []string{"O_RDONLY"}},
 		{Path: "/proc/" + dynSeg + "/task/5680/status", Flags: []string{"O_RDONLY"}},
@@ -128,7 +127,7 @@ func TestObservedDamagedProfileShapes(t *testing.T) {
 // dynamic node reach across siblings in the first place, so the isolated
 // cases would not have caught it.
 func TestObservedDamagedProfileShapesTogether(t *testing.T) {
-	var opens []types.OpenCalls
+	var opens []dp.Open
 	for _, p := range []string{
 		"/proc/1/task/1/fd",
 		"/proc/2/task/2/fd",
@@ -138,7 +137,7 @@ func TestObservedDamagedProfileShapesTogether(t *testing.T) {
 		"/proc/self/mountinfo",
 		"/proc/1/cgroup",
 	} {
-		opens = append(opens, types.OpenCalls{Path: p, Flags: []string{"O_RDONLY"}})
+		opens = append(opens, dp.Open{Path: p, Flags: []string{"O_RDONLY"}})
 	}
 
 	got, err := dp.AnalyzeOpens(opens, dp.NewPathAnalyzer(dp.OpenDynamicThreshold), nil)

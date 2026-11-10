@@ -2,15 +2,13 @@ package dynamicpathdetector
 
 import (
 	"testing"
-
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 )
 
 func analyzePaths(t *testing.T, paths ...string) []string {
 	t.Helper()
-	in := make([]types.OpenCalls, 0, len(paths))
+	in := make([]Open, 0, len(paths))
 	for _, p := range paths {
-		in = append(in, types.OpenCalls{Path: p, Flags: []string{"O_RDONLY"}})
+		in = append(in, Open{Path: p, Flags: []string{"O_RDONLY"}})
 	}
 	out, err := AnalyzeOpens(in, NewPathAnalyzer(100), nil)
 	if err != nil {

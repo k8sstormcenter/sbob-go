@@ -6,7 +6,6 @@ import (
 	"testing"
 	"time"
 
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	"github.com/stretchr/testify/require"
 )
 
@@ -21,13 +20,13 @@ func hexID(r *rand.Rand, n int) string {
 	return string(b)
 }
 
-func runcLikeExecs(n int, seed int64) []types.ExecCalls {
+func runcLikeExecs(n int, seed int64) []Exec {
 	r := rand.New(rand.NewSource(seed))
 	containers := make([]string, 0, 40)
 	for i := 0; i < 40; i++ {
 		containers = append(containers, hexID(r, 64))
 	}
-	out := make([]types.ExecCalls, 0, n)
+	out := make([]Exec, 0, n)
 	for i := 0; i < n; i++ {
 		cid := containers[r.Intn(len(containers))]
 		execID := hexID(r, 64)
@@ -37,7 +36,7 @@ func runcLikeExecs(n int, seed int64) []types.ExecCalls {
 			last = DynamicIdentifier
 		}
 		task := "/run/k3s/containerd/io.containerd.runtime.v2.task/k8s.io/" + cid
-		out = append(out, types.ExecCalls{Path: runcLikePath, Args: []string{
+		out = append(out, Exec{Path: runcLikePath, Args: []string{
 			runcLikePath,
 			"--root", "/run/containerd/runc/k8s.io",
 			"--log", task + "/log.json",

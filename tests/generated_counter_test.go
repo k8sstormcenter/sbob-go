@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	mapset "github.com/deckarep/golang-set/v2"
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	dp "github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -88,14 +87,14 @@ func TestCounterLengthBoundary(t *testing.T) {
 // At profile scope: many temp writes fold to one entry rather than a tail of
 // one-shot literals, and their flags merge.
 func TestProxyTempWritesFoldToOneEntry(t *testing.T) {
-	var opens []types.OpenCalls
+	var opens []dp.Open
 	for i := 1; i <= 40; i++ {
-		opens = append(opens, types.OpenCalls{
+		opens = append(opens, dp.Open{
 			Path:  fmt.Sprintf("/tmp/nginx/proxy_temp/1/00/%010d", i),
 			Flags: []string{"O_WRONLY", "O_CREAT"},
 		})
 	}
-	opens = append(opens, types.OpenCalls{Path: "/etc/nginx/nginx.conf", Flags: []string{"O_RDONLY"}})
+	opens = append(opens, dp.Open{Path: "/etc/nginx/nginx.conf", Flags: []string{"O_RDONLY"}})
 
 	got, err := dp.AnalyzeOpens(opens, dp.NewPathAnalyzer(dp.OpenDynamicThreshold), nil)
 	require.NoError(t, err)

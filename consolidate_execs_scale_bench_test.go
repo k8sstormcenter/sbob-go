@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"testing"
 	"time"
-
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 )
 
-func hostScaleExecs(literals, patterns, maxArgs int) []types.ExecCalls {
-	execs := make([]types.ExecCalls, 0, literals+patterns)
+func hostScaleExecs(literals, patterns, maxArgs int) []Exec {
+	execs := make([]Exec, 0, literals+patterns)
 	for i := 0; i < literals; i++ {
 		n := 3 + i%(maxArgs-2)
 		args := make([]string, 0, n)
@@ -24,14 +22,14 @@ func hostScaleExecs(literals, patterns, maxArgs int) []types.ExecCalls {
 				args = append(args, fmt.Sprintf("%d", 10000+i*7+k))
 			}
 		}
-		execs = append(execs, types.ExecCalls{Path: fmt.Sprintf("/usr/bin/bin%d", i%400), Args: args, Envs: []string{fmt.Sprintf("E=%d", i%50)}})
+		execs = append(execs, Exec{Path: fmt.Sprintf("/usr/bin/bin%d", i%400), Args: args, Envs: []string{fmt.Sprintf("E=%d", i%50)}})
 	}
 	for p := 0; p < patterns; p++ {
 		args := []string{fmt.Sprintf("bin%d", p%400), "--flag1", "/var/lib/app/" + DynamicIdentifier + "/part3", DynamicIdentifier}
 		if p%3 == 0 {
 			args = []string{fmt.Sprintf("bin%d", p%400), ExecArgsWildcard, DynamicIdentifier}
 		}
-		execs = append(execs, types.ExecCalls{Path: fmt.Sprintf("/usr/bin/bin%d", p%400), Args: args})
+		execs = append(execs, Exec{Path: fmt.Sprintf("/usr/bin/bin%d", p%400), Args: args})
 	}
 	return dedupeByArgv(execs)
 }

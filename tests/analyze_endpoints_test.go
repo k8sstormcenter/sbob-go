@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/kinbiko/jsonassert"
-	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	"github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -15,18 +14,18 @@ import (
 func TestAnalyzeEndpoints(t *testing.T) {
 	tests := []struct {
 		name     string
-		input    []types.HTTPEndpoint
-		expected []types.HTTPEndpoint
+		input    []dynamicpathdetector.Endpoint
+		expected []dynamicpathdetector.Endpoint
 	}{
 		{
 			name: "Basic test with single endpoint",
-			input: []types.HTTPEndpoint{
+			input: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":80/users/123",
 					Methods:  []string{"GET"},
 				},
 			},
-			expected: []types.HTTPEndpoint{
+			expected: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":80/users/123",
 					Methods:  []string{"GET"},
@@ -35,7 +34,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 		},
 		{
 			name: "Test with multiple endpoints",
-			input: []types.HTTPEndpoint{
+			input: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":80/users/\u22ef",
 					Methods:  []string{"GET"},
@@ -45,7 +44,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 					Methods:  []string{"POST"},
 				},
 			},
-			expected: []types.HTTPEndpoint{
+			expected: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":80/users/\u22ef",
 					Methods:  []string{"GET", "POST"},
@@ -54,7 +53,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 		},
 		{
 			name: "Test with dynamic segments",
-			input: []types.HTTPEndpoint{
+			input: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":80/users/123/posts/\u22ef",
 					Methods:  []string{"GET"},
@@ -64,7 +63,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 					Methods:  []string{"POST"},
 				},
 			},
-			expected: []types.HTTPEndpoint{
+			expected: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":80/users/\u22ef/posts/\u22ef",
 					Methods:  []string{"GET", "POST"},
@@ -79,7 +78,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 			// endpoint stays on its own port. Regression test for the bug
 			// flagged in upstream review on kubescape/storage#316.
 			name: "Test with 0 port",
-			input: []types.HTTPEndpoint{
+			input: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":0/users/123/posts/\u22ef",
 					Methods:  []string{"GET"},
@@ -93,7 +92,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 					Methods:  []string{"POST"},
 				},
 			},
-			expected: []types.HTTPEndpoint{
+			expected: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":0/users/123/posts/\u22ef",
 					Methods:  []string{"GET"},
@@ -110,7 +109,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 		},
 		{
 			name: "Test with different domains",
-			input: []types.HTTPEndpoint{
+			input: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":81/users/123",
 					Methods:  []string{"GET"},
@@ -128,7 +127,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 					Methods:  []string{"POST"},
 				},
 			},
-			expected: []types.HTTPEndpoint{
+			expected: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":81/users/123",
 					Methods:  []string{"GET"},
@@ -145,7 +144,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 		},
 		{
 			name: "Test with dynamic segments and different headers",
-			input: []types.HTTPEndpoint{
+			input: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":80/x/123/posts/\u22ef",
 					Methods:  []string{"GET"},
@@ -157,7 +156,7 @@ func TestAnalyzeEndpoints(t *testing.T) {
 					Headers:  json.RawMessage(`{"Content-Type": ["application/xml"], "Authorization": ["Bearer token"]}`),
 				},
 			},
-			expected: []types.HTTPEndpoint{
+			expected: []dynamicpathdetector.Endpoint{
 				{
 					Endpoint: ":80/x/\u22ef/posts/\u22ef",
 					Methods:  []string{"GET", "POST"},
@@ -189,15 +188,15 @@ func TestAnalyzeEndpointsWithThreshold(t *testing.T) {
 	threshold := dynamicpathdetector.EndpointDynamicThreshold
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(threshold, nil)
 
-	var input []types.HTTPEndpoint
+	var input []dynamicpathdetector.Endpoint
 	for i := 0; i < threshold+1; i++ {
-		input = append(input, types.HTTPEndpoint{
+		input = append(input, dynamicpathdetector.Endpoint{
 			Endpoint: fmt.Sprintf(":80/users/%d", i),
 			Methods:  []string{"GET"},
 		})
 	}
 
-	expected := []types.HTTPEndpoint{
+	expected := []dynamicpathdetector.Endpoint{
 		{
 			Endpoint: ":80/users/\u22ef",
 			Methods:  []string{"GET"},
@@ -212,9 +211,9 @@ func TestAnalyzeEndpointsWithExactThreshold(t *testing.T) {
 	threshold := dynamicpathdetector.EndpointDynamicThreshold
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(threshold, nil)
 
-	var input []types.HTTPEndpoint
+	var input []dynamicpathdetector.Endpoint
 	for i := 0; i < threshold; i++ {
-		input = append(input, types.HTTPEndpoint{
+		input = append(input, dynamicpathdetector.Endpoint{
 			Endpoint: fmt.Sprintf(":80/users/%d", i),
 			Methods:  []string{"GET"},
 		})
@@ -226,14 +225,14 @@ func TestAnalyzeEndpointsWithExactThreshold(t *testing.T) {
 	assert.Equal(t, threshold, len(result))
 
 	// Now add one more endpoint to trigger the dynamic behavior
-	input = append(input, types.HTTPEndpoint{
+	input = append(input, dynamicpathdetector.Endpoint{
 		Endpoint: fmt.Sprintf(":80/users/%d", threshold),
 		Methods:  []string{"GET"},
 	})
 
 	result = dynamicpathdetector.AnalyzeEndpoints(&input, analyzer)
 
-	expected := []types.HTTPEndpoint{
+	expected := []dynamicpathdetector.Endpoint{
 		{
 			Endpoint: ":80/users/\u22ef",
 			Methods:  []string{"GET"},
@@ -245,7 +244,7 @@ func TestAnalyzeEndpointsWithExactThreshold(t *testing.T) {
 func TestAnalyzeEndpointsWithInvalidURL(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(dynamicpathdetector.EndpointDynamicThreshold, nil)
 
-	input := []types.HTTPEndpoint{
+	input := []dynamicpathdetector.Endpoint{
 		{
 			Endpoint: ":::invalid-u323@!#rl:::",
 			Methods:  []string{"GET"},
@@ -263,7 +262,7 @@ func TestAnalyzeEndpointsWithInvalidURL(t *testing.T) {
 func TestAnalyzeEndpoints_WildcardDoesNotContaminateUnrelatedPaths(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(dynamicpathdetector.EndpointDynamicThreshold, nil)
 
-	input := []types.HTTPEndpoint{
+	input := []dynamicpathdetector.Endpoint{
 		{
 			Endpoint:  ":0/health",
 			Methods:   []string{"GET"},
@@ -295,7 +294,7 @@ func TestAnalyzeEndpoints_WildcardDoesNotContaminateUnrelatedPaths(t *testing.T)
 func TestAnalyzeEndpoints_SamePathSpecificFirstThenWildcard(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(dynamicpathdetector.EndpointDynamicThreshold, nil)
 
-	input := []types.HTTPEndpoint{
+	input := []dynamicpathdetector.Endpoint{
 		{
 			Endpoint:  ":443/login",
 			Methods:   []string{"POST"},
@@ -321,7 +320,7 @@ func TestAnalyzeEndpoints_SamePathSpecificFirstThenWildcard(t *testing.T) {
 func TestAnalyzeEndpoints_NoWildcardKeepsSpecificPort(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(dynamicpathdetector.EndpointDynamicThreshold, nil)
 
-	input := []types.HTTPEndpoint{
+	input := []dynamicpathdetector.Endpoint{
 		{
 			Endpoint:  ":443/login",
 			Methods:   []string{"POST"},
@@ -342,7 +341,7 @@ func TestAnalyzeEndpoints_NoWildcardKeepsSpecificPort(t *testing.T) {
 func TestAnalyzeEndpoints_OnlyMatchingPathsFoldIntoWildcard(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(dynamicpathdetector.EndpointDynamicThreshold, nil)
 
-	input := []types.HTTPEndpoint{
+	input := []dynamicpathdetector.Endpoint{
 		{
 			Endpoint:  ":0/api",
 			Methods:   []string{"GET"},
@@ -375,7 +374,7 @@ func TestAnalyzeEndpoints_OnlyMatchingPathsFoldIntoWildcard(t *testing.T) {
 func TestAnalyzeEndpointsMultiplePortsMergeIntoWildcard(t *testing.T) {
 	analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(dynamicpathdetector.EndpointDynamicThreshold, nil)
 
-	input := []types.HTTPEndpoint{
+	input := []dynamicpathdetector.Endpoint{
 		{
 			Endpoint:  ":0/api/data",
 			Methods:   []string{"GET"},
@@ -401,18 +400,18 @@ func TestAnalyzeEndpointsMultiplePortsMergeIntoWildcard(t *testing.T) {
 }
 
 func TestMergeDuplicateEndpointsWildcardPort(t *testing.T) {
-	wildcardEP := &types.HTTPEndpoint{
+	wildcardEP := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":0/api/data",
 		Methods:   []string{"GET"},
 		Direction: "outbound",
 	}
-	specificEP := &types.HTTPEndpoint{
+	specificEP := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":80/api/data",
 		Methods:   []string{"POST"},
 		Direction: "outbound",
 	}
 
-	result := dynamicpathdetector.MergeDuplicateEndpoints([]*types.HTTPEndpoint{wildcardEP, specificEP})
+	result := dynamicpathdetector.MergeDuplicateEndpoints([]*dynamicpathdetector.Endpoint{wildcardEP, specificEP})
 
 	assert.Equal(t, 1, len(result))
 	assert.Equal(t, ":0/api/data", result[0].Endpoint)
@@ -424,18 +423,18 @@ func TestMergeDuplicateEndpointsWildcardPort(t *testing.T) {
 // Without symmetric merging in MergeDuplicateEndpoints both entries survive.
 // Locking the contract here.
 func TestMergeDuplicateEndpoints_SpecificFirstThenWildcard(t *testing.T) {
-	specificEP := &types.HTTPEndpoint{
+	specificEP := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":80/api/data",
 		Methods:   []string{"POST"},
 		Direction: "outbound",
 	}
-	wildcardEP := &types.HTTPEndpoint{
+	wildcardEP := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":0/api/data",
 		Methods:   []string{"GET"},
 		Direction: "outbound",
 	}
 
-	result := dynamicpathdetector.MergeDuplicateEndpoints([]*types.HTTPEndpoint{specificEP, wildcardEP})
+	result := dynamicpathdetector.MergeDuplicateEndpoints([]*dynamicpathdetector.Endpoint{specificEP, wildcardEP})
 
 	assert.Equal(t, 1, len(result), "wildcard sibling must absorb the earlier specific-port entry")
 	assert.Equal(t, ":0/api/data", result[0].Endpoint)
@@ -446,11 +445,11 @@ func TestMergeDuplicateEndpoints_SpecificFirstThenWildcard(t *testing.T) {
 // without a wildcard sibling, distinct (port,path) pairs all survive.
 // A regression here would mean the merge is collapsing too aggressively.
 func TestMergeDuplicateEndpoints_NoWildcardKeepsAllSpecificPorts(t *testing.T) {
-	a := &types.HTTPEndpoint{Endpoint: ":80/api/data", Methods: []string{"GET"}, Direction: "outbound"}
-	b := &types.HTTPEndpoint{Endpoint: ":443/api/data", Methods: []string{"POST"}, Direction: "outbound"}
-	c := &types.HTTPEndpoint{Endpoint: ":8080/api/data", Methods: []string{"PUT"}, Direction: "outbound"}
+	a := &dynamicpathdetector.Endpoint{Endpoint: ":80/api/data", Methods: []string{"GET"}, Direction: "outbound"}
+	b := &dynamicpathdetector.Endpoint{Endpoint: ":443/api/data", Methods: []string{"POST"}, Direction: "outbound"}
+	c := &dynamicpathdetector.Endpoint{Endpoint: ":8080/api/data", Methods: []string{"PUT"}, Direction: "outbound"}
 
-	result := dynamicpathdetector.MergeDuplicateEndpoints([]*types.HTTPEndpoint{a, b, c})
+	result := dynamicpathdetector.MergeDuplicateEndpoints([]*dynamicpathdetector.Endpoint{a, b, c})
 
 	assert.Equal(t, 3, len(result), "no wildcard sibling => all specific-port endpoints must be kept")
 }
@@ -469,20 +468,20 @@ func TestMergeDuplicateEndpoints_NoWildcardKeepsAllSpecificPorts(t *testing.T) {
 // that two endpoints differing ONLY in Internal are NOT collapsed by the
 // duplicate-key check at the top of the merge loop.
 func TestMergeDuplicateEndpoints_InternalFieldDistinguishesDuplicates(t *testing.T) {
-	external := &types.HTTPEndpoint{
+	external := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":443/login",
 		Methods:   []string{"POST"},
 		Direction: "outbound",
 		Internal:  false,
 	}
-	internal := &types.HTTPEndpoint{
+	internal := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":443/login",
 		Methods:   []string{"GET"},
 		Direction: "outbound",
 		Internal:  true,
 	}
 
-	result := dynamicpathdetector.MergeDuplicateEndpoints([]*types.HTTPEndpoint{external, internal})
+	result := dynamicpathdetector.MergeDuplicateEndpoints([]*dynamicpathdetector.Endpoint{external, internal})
 
 	assert.Equal(t, 2, len(result),
 		"endpoints with different Internal must NOT merge (HTTPEndpoint.Equal distinguishes Internal)")
@@ -501,20 +500,20 @@ func TestMergeDuplicateEndpoints_InternalFieldDistinguishesDuplicates(t *testing
 // pins the wildcard-after-specific path: an Internal=false :0 wildcard must
 // NOT sweep up a previously-recorded Internal=true specific-port sibling.
 func TestMergeDuplicateEndpoints_InternalFieldGuardsWildcardAbsorbingPrior(t *testing.T) {
-	specificInternal := &types.HTTPEndpoint{
+	specificInternal := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":443/login",
 		Methods:   []string{"POST"},
 		Direction: "outbound",
 		Internal:  true,
 	}
-	wildcardExternal := &types.HTTPEndpoint{
+	wildcardExternal := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":0/login",
 		Methods:   []string{"GET"},
 		Direction: "outbound",
 		Internal:  false,
 	}
 
-	result := dynamicpathdetector.MergeDuplicateEndpoints([]*types.HTTPEndpoint{specificInternal, wildcardExternal})
+	result := dynamicpathdetector.MergeDuplicateEndpoints([]*dynamicpathdetector.Endpoint{specificInternal, wildcardExternal})
 
 	assert.Equal(t, 2, len(result),
 		"wildcard with Internal=false must NOT absorb a specific-port sibling with Internal=true")
@@ -524,20 +523,20 @@ func TestMergeDuplicateEndpoints_InternalFieldGuardsWildcardAbsorbingPrior(t *te
 // pins the wildcard-first path: a previously-recorded Internal=true wildcard
 // must NOT absorb a later Internal=false specific-port sibling.
 func TestMergeDuplicateEndpoints_InternalFieldGuardsSpecificFoldingIntoWildcard(t *testing.T) {
-	wildcardInternal := &types.HTTPEndpoint{
+	wildcardInternal := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":0/login",
 		Methods:   []string{"GET"},
 		Direction: "outbound",
 		Internal:  true,
 	}
-	specificExternal := &types.HTTPEndpoint{
+	specificExternal := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":443/login",
 		Methods:   []string{"POST"},
 		Direction: "outbound",
 		Internal:  false,
 	}
 
-	result := dynamicpathdetector.MergeDuplicateEndpoints([]*types.HTTPEndpoint{wildcardInternal, specificExternal})
+	result := dynamicpathdetector.MergeDuplicateEndpoints([]*dynamicpathdetector.Endpoint{wildcardInternal, specificExternal})
 
 	assert.Equal(t, 2, len(result),
 		"specific-port with Internal=false must NOT fold into a wildcard sibling with Internal=true")
@@ -548,20 +547,20 @@ func TestMergeDuplicateEndpoints_InternalFieldGuardsSpecificFoldingIntoWildcard(
 // path+direction merge contract still holds. A regression here would mean
 // the Internal guard accidentally blocks legitimate folding.
 func TestMergeDuplicateEndpoints_InternalFieldMatching_StillFolds(t *testing.T) {
-	wildcard := &types.HTTPEndpoint{
+	wildcard := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":0/login",
 		Methods:   []string{"GET"},
 		Direction: "outbound",
 		Internal:  true,
 	}
-	specific := &types.HTTPEndpoint{
+	specific := &dynamicpathdetector.Endpoint{
 		Endpoint:  ":443/login",
 		Methods:   []string{"POST"},
 		Direction: "outbound",
 		Internal:  true,
 	}
 
-	result := dynamicpathdetector.MergeDuplicateEndpoints([]*types.HTTPEndpoint{wildcard, specific})
+	result := dynamicpathdetector.MergeDuplicateEndpoints([]*dynamicpathdetector.Endpoint{wildcard, specific})
 
 	assert.Equal(t, 1, len(result), "matching Internal => specific-port sibling still folds into wildcard")
 	assert.Equal(t, ":0/login", result[0].Endpoint)
