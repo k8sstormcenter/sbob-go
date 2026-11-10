@@ -1,4 +1,4 @@
-package dynamicpathdetector
+package match
 
 import "strings"
 
@@ -44,7 +44,7 @@ func UnmatchableArg(token string) bool {
 	if !strings.Contains(token, DynamicIdentifier) {
 		return false
 	}
-	return !argMatches(token, instantiateSegments(token, false))
+	return !ArgMatches(token, instantiateSegments(token, false))
 }
 
 func InstantiateExecArgs(args []string) []string {

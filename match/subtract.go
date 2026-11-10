@@ -1,10 +1,8 @@
-package dynamicpathdetector
+package match
 
 import (
 	"fmt"
 	"path"
-
-	"github.com/kubescape/storage/pkg/registry/file/networkmatch"
 )
 
 type Entry struct {
@@ -71,7 +69,7 @@ func DomainMatches(entries []Entry, rt Entry) bool {
 	for _, e := range entries {
 		names = append(names, e.Name)
 	}
-	return networkmatch.MatchDNS(names, rt.Name)
+	return MatchDNS(names, rt.Name)
 }
 
 func Allowed(surface string, allow, subtract []Entry, rt Entry) (bool, error) {

@@ -1,0 +1,5 @@
+sbob-go
+
+This module contains code derived from the kubescape storage project
+(https://github.com/kubescape/storage), licensed under the Apache License,
+Version 2.0. The original copyright notices are retained in the affected files.

@@ -1,21 +1,18 @@
-package dynamicpathdetector
+package collapse
+
+import "github.com/k8sstormcenter/sbob-go/match"
 
 // --- Identifier constants ---
-// DynamicIdentifier matches exactly one path segment (single-segment wildcard),
+// match.DynamicIdentifier matches exactly one path segment (single-segment wildcard),
 // and in exec args matches exactly one whole argument.
-// WildcardIdentifier matches zero-or-more path segments (glob-style **). It is a
+// match.WildcardIdentifier matches zero-or-more path segments (glob-style **). It is a
 // PATH/OPENS wildcard only — in exec args a "*" is a plain literal character (a
 // process is frequently invoked with a literal "*", e.g. an unexpanded glob).
-// ExecArgsWildcard is the exec-args zero-or-more wildcard: a standalone argv
+// match.ExecArgsWildcard is the exec-args zero-or-more wildcard: a standalone argv
 // token that absorbs zero or more whole arguments. It is a dedicated sentinel
 // (doubled U+22EF) precisely so it cannot collide with any real argv token —
-// the same collision-avoidance rationale behind DynamicIdentifier. Exec args
+// the same collision-avoidance rationale behind match.DynamicIdentifier. Exec args
 // therefore need no escaping: every other byte, including "*", is literal.
-const (
-	DynamicIdentifier  string = "⋯"  // U+22EF: ⋯ (one segment / one arg)
-	WildcardIdentifier string = "*"  // zero-or-more path segments (opens only)
-	ExecArgsWildcard   string = "⋯⋯" // zero-or-more whole exec args
-)
 
 // --- Default collapse thresholds ---
 // OpenDynamicThreshold is the fallback threshold used by AnalyzeOpens when
@@ -110,6 +107,6 @@ type PathAnalyzer struct {
 }
 
 func (sn *SegmentNode) IsNextDynamic() bool {
-	_, exists := sn.Children[DynamicIdentifier]
+	_, exists := sn.Children[match.DynamicIdentifier]
 	return exists
 }

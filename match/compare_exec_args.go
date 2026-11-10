@@ -1,4 +1,4 @@
-package dynamicpathdetector
+package match
 
 import (
 	"slices"
@@ -50,7 +50,7 @@ func matchExecArgsStrict(profileArgs, runtimeArgs []string) bool {
 			return false
 		}
 		for i := range profileArgs {
-			if !argMatches(profileArgs[i], runtimeArgs[i]) {
+			if !ArgMatches(profileArgs[i], runtimeArgs[i]) {
 				return false
 			}
 		}
@@ -95,7 +95,7 @@ func matchExecArgsStrict(profileArgs, runtimeArgs []string) bool {
 			return store(false)
 		}
 
-		if argMatches(head, runtimeArgs[ri]) {
+		if ArgMatches(head, runtimeArgs[ri]) {
 			return store(match(pi+1, ri+1))
 		}
 
@@ -120,7 +120,7 @@ func matchExecArgsStrict(profileArgs, runtimeArgs []string) bool {
 // data. Treating it literally is what prevents the R0040 over-broadening (a
 // recorded "/plugins/*" arg must not match "/plugins/evil.so"), and because the
 // wildcards are sentinels that cannot occur in real argv, no escaping is needed.
-func argMatches(profileArg, runtimeArg string) bool {
+func ArgMatches(profileArg, runtimeArg string) bool {
 	if profileArg == DynamicIdentifier {
 		return true
 	}

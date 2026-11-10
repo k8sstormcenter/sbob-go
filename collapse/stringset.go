@@ -1,4 +1,4 @@
-package dynamicpathdetector
+package collapse
 
 import "slices"
 

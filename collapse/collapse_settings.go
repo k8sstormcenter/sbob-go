@@ -14,7 +14,7 @@ See the License for the specific language governing permissions and
 limitations under the License.
 */
 
-package dynamicpathdetector
+package collapse
 
 // clampInt32 clamps a runtime int into the int32 wire range used by the
 // CollapseConfiguration CRD. Thresholds are physically small (single- or

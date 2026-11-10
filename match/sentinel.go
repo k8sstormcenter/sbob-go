@@ -1,4 +1,4 @@
-package dynamicpathdetector
+package match
 
 import "path"
 

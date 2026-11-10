@@ -1,9 +1,11 @@
-package dynamicpathdetector
+package collapse
 
 import (
 	"slices"
 	"strconv"
 	"strings"
+
+	"github.com/k8sstormcenter/sbob-go/match"
 )
 
 // tokensKey is an injective encoding of a token list (length-prefixed), for
@@ -46,7 +48,7 @@ func compareExecCalls(a, b Exec) int {
 // hasDynamicToken reports whether args contain ⋯ anywhere (this includes ⋯⋯),
 // i.e. whether the entry is a pattern rather than a literal argv.
 func hasDynamicToken(args []string) bool {
-	return slices.ContainsFunc(args, func(arg string) bool { return strings.Contains(arg, DynamicIdentifier) })
+	return slices.ContainsFunc(args, func(arg string) bool { return strings.Contains(arg, match.DynamicIdentifier) })
 }
 
 // ExecAnalyzer carries the thresholds AnalyzeExecs applies per binary:
@@ -165,13 +167,13 @@ type argRoot struct {
 func analyzeBinaryExecs(path string, execs []Exec, threshold int) []Exec {
 	// Absorb covered inputs before any generalization, then again after
 	// argv[0] collapses (which can create duplicates and covered entries).
-	entries := consolidateExecs(dedupeByArgv(execs))
-	entries = consolidateExecs(dedupeByArgv(collapseArgv0(entries, threshold)))
+	entries := ConsolidateExecs(dedupeByArgv(execs))
+	entries = ConsolidateExecs(dedupeByArgv(collapseArgv0(entries, threshold)))
 
 	roots := make(map[argRoot]*argNode)
 	var anyArgs []Exec
 	for _, e := range entries {
-		if slices.Contains(e.Args, ExecArgsWildcard) {
+		if slices.Contains(e.Args, match.ExecArgsWildcard) {
 			anyArgs = append(anyArgs, e)
 			continue
 		}
@@ -201,7 +203,7 @@ func analyzeBinaryExecs(path string, execs []Exec, threshold int) []Exec {
 
 	// The ceiling counts what remains after consolidation: nothing an
 	// existing pattern already covers may broaden the binary to [argv0, ⋯⋯].
-	consolidated := consolidateExecs(append(anyArgs, patterns...))
+	consolidated := ConsolidateExecs(append(anyArgs, patterns...))
 	if len(consolidated) > threshold {
 		return anyArgsPerArgv0(path, entries)
 	}
@@ -258,7 +260,7 @@ func collapseArgv0(execs []Exec, threshold int) []Exec {
 	var literals []string
 	for argv0 := range distinct {
 		mapped[argv0] = argv0
-		if strings.Contains(argv0, DynamicIdentifier) {
+		if strings.Contains(argv0, match.DynamicIdentifier) {
 			continue
 		}
 		literals = append(literals, argv0)
@@ -289,13 +291,13 @@ func collapseArgv0(execs []Exec, threshold int) []Exec {
 			if child, ok := node.children[seg]; ok {
 				shape[i], node = seg, child
 			} else {
-				shape[i], node = DynamicIdentifier, node.children[DynamicIdentifier]
+				shape[i], node = match.DynamicIdentifier, node.children[match.DynamicIdentifier]
 			}
 		}
-		if candidate := strings.Join(shape, "/"); CompareExecArgs([]string{candidate}, []string{argv0}) {
+		if candidate := strings.Join(shape, "/"); match.CompareExecArgs([]string{candidate}, []string{argv0}) {
 			mapped[argv0] = candidate
 		} else {
-			mapped[argv0] = DynamicIdentifier
+			mapped[argv0] = match.DynamicIdentifier
 		}
 	}
 
@@ -305,7 +307,7 @@ func collapseArgv0(execs []Exec, threshold int) []Exec {
 	}
 	if len(shapes) > threshold {
 		for argv0 := range mapped {
-			mapped[argv0] = DynamicIdentifier
+			mapped[argv0] = match.DynamicIdentifier
 		}
 	}
 
@@ -324,13 +326,13 @@ func collapseArgv0(execs []Exec, threshold int) []Exec {
 // are more than threshold of them, or when a ⋯ child already exists (so an
 // earlier collapse keeps absorbing new literals), then recurses.
 func collapseArgNode(node *argNode, threshold int) {
-	_, hasDynamic := node.children[DynamicIdentifier]
+	_, hasDynamic := node.children[match.DynamicIdentifier]
 	if len(node.children) > threshold || (hasDynamic && len(node.children) > 1) {
 		merged := newArgNode()
 		for _, child := range node.children {
 			mergeArgNode(merged, child)
 		}
-		node.children = map[string]*argNode{DynamicIdentifier: merged}
+		node.children = map[string]*argNode{match.DynamicIdentifier: merged}
 	}
 	for _, child := range node.children {
 		collapseArgNode(child, threshold)
@@ -378,7 +380,7 @@ func anyArgsPerArgv0(path string, execs []Exec) []Exec {
 	}
 	out := make([]Exec, 0, len(argv0s))
 	for _, argv0 := range argv0s {
-		out = append(out, Exec{Path: path, Args: []string{argv0, ExecArgsWildcard}, Envs: sortedEnvs(envs[argv0])})
+		out = append(out, Exec{Path: path, Args: []string{argv0, match.ExecArgsWildcard}, Envs: sortedEnvs(envs[argv0])})
 	}
 	return out
 }
@@ -388,7 +390,7 @@ func anyArgsPerArgv0(path string, execs []Exec) []Exec {
 // patterns can be absorbed too, which is what keeps generalized deltas from
 // widening a stored profile.
 //
-// Coverage is CompareExecArgs(coverer, covered) with the covered entry's
+// Coverage is match.CompareExecArgs(coverer, covered) with the covered entry's
 // tokens read as literal args. That is sound when the covered entry has no
 // ⋯⋯: a covered ⋯ is only matched by a coverer's bare ⋯ or ⋯⋯, and a
 // covered segment pattern only by an identical segment, a bare ⋯ or ⋯⋯.
@@ -400,7 +402,7 @@ func anyArgsPerArgv0(path string, execs []Exec) []Exec {
 // only coverers are absorbed or mutually covering stay, which is always safe.
 // Entries are processed in compareExecCalls order, so the result doesn't
 // depend on input order. Input must be deduped by argv.
-func consolidateExecs(execs []Exec) []Exec {
+func ConsolidateExecs(execs []Exec) []Exec {
 	sorted := slices.Clone(execs)
 	slices.SortFunc(sorted, compareExecCalls)
 	// Only patterns can cover anything else (distinct literals never match
@@ -421,7 +423,7 @@ func consolidateExecs(execs []Exec) []Exec {
 
 	coverers := make([][]int, len(sorted))
 	for i := range sorted {
-		if slices.Contains(sorted[i].Args, ExecArgsWildcard) {
+		if slices.Contains(sorted[i].Args, match.ExecArgsWildcard) {
 			continue
 		}
 		coverers[i] = index.coverers(sorted[i].Args, i)

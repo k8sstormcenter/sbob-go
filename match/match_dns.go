@@ -1,4 +1,4 @@
-package networkmatch
+package match
 
 import "strings"
 

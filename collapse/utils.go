@@ -1,4 +1,4 @@
-package dynamicpathdetector
+package collapse
 
 func MergeStrings(existing, new []string) []string {
 	methodSet := make(map[string]bool)

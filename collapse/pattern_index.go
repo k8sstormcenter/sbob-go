@@ -1,7 +1,9 @@
-package dynamicpathdetector
+package collapse
 
 import (
 	"strings"
+
+	"github.com/k8sstormcenter/sbob-go/match"
 )
 
 type execPatternNode struct {
@@ -47,9 +49,9 @@ func (idx *execPatternIndex) insert(j int, args []string) {
 		return
 	}
 	for _, arg := range args {
-		if arg == ExecArgsWildcard {
+		if arg == match.ExecArgsWildcard {
 			first := args[0]
-			if first == ExecArgsWildcard || strings.Contains(first, DynamicIdentifier) {
+			if first == match.ExecArgsWildcard || strings.Contains(first, match.DynamicIdentifier) {
 				idx.anyOther = append(idx.anyOther, j)
 			} else {
 				idx.anyByFirst[first] = append(idx.anyByFirst[first], j)
@@ -69,13 +71,13 @@ func (idx *execPatternIndex) insert(j int, args []string) {
 }
 
 func (n *execPatternNode) child(arg string) *execPatternNode {
-	if arg == DynamicIdentifier {
+	if arg == match.DynamicIdentifier {
 		if n.any == nil {
 			n.any = &execPatternNode{}
 		}
 		return n.any
 	}
-	if !strings.Contains(arg, DynamicIdentifier) {
+	if !strings.Contains(arg, match.DynamicIdentifier) {
 		if n.literal == nil {
 			n.literal = make(map[string]*execPatternNode)
 		}
@@ -88,7 +90,7 @@ func (n *execPatternNode) child(arg string) *execPatternNode {
 	}
 	hasSpan := false
 	forEachSegment(arg, func(seg string) {
-		if seg == ExecArgsWildcard {
+		if seg == match.ExecArgsWildcard {
 			hasSpan = true
 		}
 	})
@@ -116,7 +118,7 @@ func (n *execPatternNode) child(arg string) *execPatternNode {
 }
 
 func (s *execSegmentNode) child(seg string) *execSegmentNode {
-	if seg == DynamicIdentifier {
+	if seg == match.DynamicIdentifier {
 		if s.any == nil {
 			s.any = &execSegmentNode{}
 		}
@@ -165,7 +167,7 @@ func (idx *execPatternIndex) coverers(args []string, self int) []int {
 					idx.matchSegments(n.segments, arg)
 				}
 				for i := range n.spans {
-					if argMatches(n.spans[i].token, arg) {
+					if match.ArgMatches(n.spans[i].token, arg) {
 						idx.next = append(idx.next, n.spans[i].next)
 					}
 				}
@@ -184,12 +186,12 @@ func (idx *execPatternIndex) coverers(args []string, self int) []int {
 		}
 	}
 	for _, j := range idx.anyByFirst[args[0]] {
-		if j != self && CompareExecArgs(idx.execs[j].Args, args) {
+		if j != self && match.CompareExecArgs(idx.execs[j].Args, args) {
 			out = append(out, j)
 		}
 	}
 	for _, j := range idx.anyOther {
-		if j != self && CompareExecArgs(idx.execs[j].Args, args) {
+		if j != self && match.CompareExecArgs(idx.execs[j].Args, args) {
 			out = append(out, j)
 		}
 	}
@@ -243,7 +245,7 @@ func newOpenPatternIndex(opens []Open, patterns []int) *openPatternIndex {
 	idx := &openPatternIndex{opens: opens, root: &openPatternNode{}, states: make(map[*openPatternNode]bool), next: make(map[*openPatternNode]bool)}
 	for _, pi := range patterns {
 		p := opens[pi].Path
-		if countStarSegments(p) >= 2 {
+		if match.CountStarSegments(p) >= 2 {
 			idx.fallback = append(idx.fallback, pi)
 			continue
 		}
@@ -258,12 +260,12 @@ func newOpenPatternIndex(opens []Open, patterns []int) *openPatternIndex {
 
 func (n *openPatternNode) child(seg string) *openPatternNode {
 	switch seg {
-	case WildcardIdentifier:
+	case match.WildcardIdentifier:
 		if n.star == nil {
 			n.star = &openPatternNode{isStar: true}
 		}
 		return n.star
-	case DynamicIdentifier:
+	case match.DynamicIdentifier:
 		if n.dynamic == nil {
 			n.dynamic = &openPatternNode{}
 		}
@@ -283,7 +285,7 @@ func (n *openPatternNode) child(seg string) *openPatternNode {
 func pathSegments(p string, buf []string) []string {
 	buf = buf[:0]
 	for i := 0; i < len(p); {
-		seg, next := segAt(p, i)
+		seg, next := match.SegAt(p, i)
 		buf = append(buf, seg)
 		i = next
 	}
@@ -338,7 +340,7 @@ func (idx *openPatternIndex) coverers(path string) []int {
 		out = append(out, n.terminal...)
 	}
 	for _, pi := range idx.fallback {
-		if CompareDynamic(idx.opens[pi].Path, path) {
+		if match.CompareDynamic(idx.opens[pi].Path, path) {
 			out = append(out, pi)
 		}
 	}

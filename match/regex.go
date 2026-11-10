@@ -1,4 +1,4 @@
-package dynamicpathdetector
+package match
 
 import (
 	"regexp"
@@ -12,7 +12,7 @@ func PathRegexp(pattern string) string {
 	if pattern == WildcardIdentifier {
 		return "^.+$"
 	}
-	pattern = collapseConsecutiveStars(pattern)
+	pattern = CollapseConsecutiveStars(pattern)
 	segs := strings.Split(pattern, "/")
 	if len(segs) > 1 && segs[len(segs)-1] == "" {
 		segs = segs[:len(segs)-1]

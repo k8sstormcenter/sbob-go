@@ -1,9 +1,11 @@
-package dynamicpathdetector
+package collapse
 
 import (
 	"maps"
 	"slices"
 	"strings"
+
+	"github.com/k8sstormcenter/sbob-go/match"
 )
 
 func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool) ([]Open, error) {
@@ -45,7 +47,7 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 		return strings.Compare(a.Path, b.Path)
 	})
 
-	return consolidateOpens(result, pinned), nil
+	return ConsolidateOpens(result, pinned), nil
 }
 
 // consolidateOpens drops any literal Open whose path is already covered
@@ -59,7 +61,7 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 // Two invariants:
 //
 //  1. Patterns are always preserved — if a path contains either
-//     WildcardIdentifier or DynamicIdentifier it counts as a pattern
+//     match.WildcardIdentifier or match.DynamicIdentifier it counts as a pattern
 //     and is never absorbed.
 //  2. SBOM-listed paths are always preserved — they are part of the
 //     image's manifest and must remain identifiable on their own,
@@ -68,7 +70,7 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 // Subsumption check uses the same CompareDynamic the runtime matcher
 // (CEL `ap.was_opened`) uses, so both sides agree on what "covered"
 // means at every depth.
-func consolidateOpens(opens []Open, pinned func(string) bool) []Open {
+func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 	if len(opens) <= 1 {
 		return opens
 	}
@@ -80,7 +82,7 @@ func consolidateOpens(opens []Open, pinned func(string) bool) []Open {
 	// the input's existing sort (alphabetical by Path) breaks them.
 	patternOrder := make([]int, 0, len(opens))
 	for i, o := range opens {
-		if strings.Contains(o.Path, WildcardIdentifier) || strings.Contains(o.Path, DynamicIdentifier) {
+		if strings.Contains(o.Path, match.WildcardIdentifier) || strings.Contains(o.Path, match.DynamicIdentifier) {
 			isPattern[i] = true
 			patternOrder = append(patternOrder, i)
 		}
