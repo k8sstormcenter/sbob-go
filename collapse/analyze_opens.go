@@ -110,10 +110,10 @@ func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 
 	for i, o := range opens {
 		if isPattern[i] {
-			continue // patterns always survive
+			continue
 		}
 		if pinned != nil && pinned(o.Path) {
-			continue // SBOM paths always survive
+			continue
 		}
 		best := -1
 		for _, pi := range index.coverers(o.Path) {
@@ -124,6 +124,22 @@ func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 		if best >= 0 {
 			opens[best].Flags = newStringSet(slices.Concat(opens[best].Flags, o.Flags)...).sorted()
 			keep[i] = false
+		}
+	}
+
+	for _, narrow := range patternOrder {
+		if !keep[narrow] {
+			continue
+		}
+		for _, broad := range patternOrder {
+			if broad == narrow || !keep[broad] || rank[broad] <= rank[narrow] {
+				continue
+			}
+			if patternCovers(opens[broad].Path, opens[narrow].Path) {
+				opens[broad].Flags = newStringSet(slices.Concat(opens[broad].Flags, opens[narrow].Flags)...).sorted()
+				keep[narrow] = false
+				break
+			}
 		}
 	}
 
@@ -138,4 +154,39 @@ func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 
 func AnalyzeOpen(path string, analyzer *PathAnalyzer) (string, error) {
 	return analyzer.AnalyzePath(path, "opens")
+}
+
+func patternCovers(broad, narrow string) bool {
+	if broad == narrow {
+		return true
+	}
+	return segmentsCover(match.SplitPath(broad), match.SplitPath(narrow))
+}
+
+func segmentsCover(broad, narrow []string) bool {
+	if len(broad) == 0 {
+		return len(narrow) == 0
+	}
+	switch broad[0] {
+	case match.WildcardIdentifier:
+		if len(broad) == 1 {
+			return len(narrow) >= 1
+		}
+		for k := 0; k <= len(narrow); k++ {
+			if segmentsCover(broad[1:], narrow[k:]) {
+				return true
+			}
+		}
+		return false
+	case match.DynamicIdentifier:
+		if len(narrow) == 0 || narrow[0] == match.WildcardIdentifier {
+			return false
+		}
+		return segmentsCover(broad[1:], narrow[1:])
+	default:
+		if len(narrow) == 0 || narrow[0] != broad[0] {
+			return false
+		}
+		return segmentsCover(broad[1:], narrow[1:])
+	}
 }
