@@ -152,7 +152,7 @@ func isAllDigits(s string) bool {
 // this helper returns empty port + leading-slash-normalised path for
 // any input that does not start with `:`. The empty string returns
 // ("", "/") to match the original fall-through behavior.
-func splitEndpointPortAndPath(endpoint string) (string, string) {
+func SplitEndpointPortAndPath(endpoint string) (string, string) {
 	if !strings.HasPrefix(endpoint, ":") {
 		if endpoint == "" {
 			return "", "/"
@@ -199,7 +199,7 @@ func MergeDuplicateEndpoints(endpoints []*Endpoint) []*Endpoint {
 			continue
 		}
 
-		port, pathPart := splitEndpointPortAndPath(endpoint.Endpoint)
+		port, pathPart := SplitEndpointPortAndPath(endpoint.Endpoint)
 
 		if isWildcardPort(port) {
 			// Wildcard arriving after specific-port siblings — sweep `seen`
@@ -207,7 +207,7 @@ func MergeDuplicateEndpoints(endpoints []*Endpoint) []*Endpoint {
 			// already recorded, fold them into the wildcard, then drop them
 			// from the output slice.
 			for k, e := range seen {
-				ePort, ePath := splitEndpointPortAndPath(e.Endpoint)
+				ePort, ePath := SplitEndpointPortAndPath(e.Endpoint)
 				if isWildcardPort(ePort) || ePath != pathPart ||
 					e.Direction != endpoint.Direction || e.Internal != endpoint.Internal {
 					continue

@@ -24,11 +24,6 @@ func (s stringSet) addAll(items ...string) {
 	}
 }
 
-func (s stringSet) has(item string) bool {
-	_, ok := s[item]
-	return ok
-}
-
 func (s stringSet) sorted() []string {
 	out := make([]string, 0, len(s))
 	for item := range s {
