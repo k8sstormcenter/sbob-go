@@ -81,7 +81,7 @@ func referenceConsolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
 	for _, i := range kept {
 		e := sorted[i]
 		if set, ok := merged[i]; ok {
-			e.Envs = sortedEnvs(set)
+			e.Envs = mapsetSortedOrNil(set)
 		} else {
 			e.Envs = normalizedEnvs(e.Envs)
 		}
@@ -225,7 +225,21 @@ func TestConsolidateOpensMatchesReference(t *testing.T) {
 			sbom = mapset.NewThreadUnsafeSet(opens[r.Intn(len(opens))].Path)
 		}
 		want := referenceConsolidateOpens(cloneOpens(opens), sbom)
-		got := consolidateOpens(cloneOpens(opens), sbom)
+		got := consolidateOpens(cloneOpens(opens), pinnedFrom(sbom))
 		require.Equal(t, want, got, "round %d input %v", round, opens)
 	}
+}
+
+func pinnedFrom(set mapset.Set[string]) func(string) bool {
+	if set == nil {
+		return nil
+	}
+	return set.ContainsOne
+}
+
+func mapsetSortedOrNil(set mapset.Set[string]) []string {
+	if set.Cardinality() == 0 {
+		return nil
+	}
+	return mapset.Sorted(set)
 }

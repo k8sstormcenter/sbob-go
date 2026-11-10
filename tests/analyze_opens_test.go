@@ -44,7 +44,7 @@ func TestAnalyzeOpensWithThreshold(t *testing.T) {
 		},
 	}
 
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, expected, result)
 }
@@ -105,7 +105,7 @@ func TestAnalyzeOpensWithFlagMergingAndThreshold(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(threshold, nil)
-			result, err := dynamicpathdetector.AnalyzeOpens(tt.input, analyzer, mapset.NewSet[string]())
+			result, err := dynamicpathdetector.AnalyzeOpens(tt.input, analyzer, nil)
 			assert.NoError(t, err)
 
 			assert.Equal(t, tt.expected, result)
@@ -138,7 +138,7 @@ func TestAnalyzeOpensWithAsteriskAndEllipsis(t *testing.T) {
 		{Path: "/home/\u22ef/file.txt", Flags: []string{"READ"}},
 	}
 
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 
 	assert.ElementsMatch(t, expected, result)
@@ -163,7 +163,7 @@ func TestAnalyzeOpensWithMultiCollapse(t *testing.T) {
 		{Path: "/var/run/txt2/file.txt", Flags: []string{"READ"}},
 	}
 
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 
 	assert.ElementsMatch(t, expected, result)
@@ -224,7 +224,7 @@ func TestAnalyzeOpensWithDynamicConfigs(t *testing.T) {
 		input = append(input, types.OpenCalls{Path: p, Flags: []string{"READ"}})
 	}
 
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 
 	// /etc paths (threshold 50) should NOT be collapsed
@@ -262,7 +262,7 @@ func TestAnalyzeOpensCollapseExactBoundary(t *testing.T) {
 				Flags: []string{"READ"},
 			})
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, threshold, len(result), "at exact threshold, paths should NOT collapse")
 		for _, r := range result {
@@ -280,7 +280,7 @@ func TestAnalyzeOpensCollapseExactBoundary(t *testing.T) {
 				Flags: []string{"READ"},
 			})
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(result), "above threshold, paths should collapse to 1")
 		assert.Equal(t, "/data/\u22ef/info", result[0].Path, "single \u22ef should not collapse to *")
@@ -300,7 +300,7 @@ func TestAnalyzeOpensDuplicatePathsNoCollapse(t *testing.T) {
 			Flags: []string{"READ"},
 		})
 	}
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result))
 	assert.Equal(t, "/data/same-child/file.txt", result[0].Path, "duplicate paths should not trigger collapse")
@@ -320,7 +320,7 @@ func TestAnalyzeOpensVaryingDepthsUnderPrefix(t *testing.T) {
 			Flags: []string{"READ"},
 		})
 	}
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 	for _, r := range result {
 		assert.True(t,
@@ -342,7 +342,7 @@ func TestAnalyzeOpensNewPathAfterCollapse(t *testing.T) {
 			Path: fmt.Sprintf("/srv/%c/log", 'a'+rune(i)), Flags: []string{"READ"},
 		})
 	}
-	result1, err := dynamicpathdetector.AnalyzeOpens(batch1, analyzer, mapset.NewSet[string]())
+	result1, err := dynamicpathdetector.AnalyzeOpens(batch1, analyzer, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result1), "first batch should collapse to 1 path")
 
@@ -350,7 +350,7 @@ func TestAnalyzeOpensNewPathAfterCollapse(t *testing.T) {
 	batch2 := append(batch1, types.OpenCalls{
 		Path: "/srv/new-service/log", Flags: []string{"WRITE"},
 	})
-	result2, err := dynamicpathdetector.AnalyzeOpens(batch2, analyzer, mapset.NewSet[string]())
+	result2, err := dynamicpathdetector.AnalyzeOpens(batch2, analyzer, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result2), "new path after collapse should be absorbed")
 	assert.Contains(t, result2[0].Flags, "WRITE", "flags from new path should be merged")
@@ -369,7 +369,7 @@ func TestAnalyzeOpensDefaultThresholdForUnconfiguredPrefix(t *testing.T) {
 		{Path: "/configured/b/file", Flags: []string{"READ"}},
 		{Path: "/configured/c/file", Flags: []string{"READ"}},
 	}
-	result, err := dynamicpathdetector.AnalyzeOpens(configuredInput, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(configuredInput, analyzer, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result), "/configured should collapse with threshold 2")
 
@@ -383,7 +383,7 @@ func TestAnalyzeOpensDefaultThresholdForUnconfiguredPrefix(t *testing.T) {
 		{Path: "/unconfigured/b/file", Flags: []string{"READ"}},
 		{Path: "/unconfigured/c/file", Flags: []string{"READ"}},
 	}
-	result2, err := dynamicpathdetector.AnalyzeOpens(unconfiguredInput, analyzer2, mapset.NewSet[string]())
+	result2, err := dynamicpathdetector.AnalyzeOpens(unconfiguredInput, analyzer2, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 3, len(result2),
 		"/unconfigured should NOT collapse with default threshold %d", defaultThreshold)
@@ -401,7 +401,7 @@ func TestAnalyzeOpensThreshold1ImmediateWildcard(t *testing.T) {
 		input := []types.OpenCalls{
 			{Path: "/instant/only-child/data", Flags: []string{"READ"}},
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(result))
 		assert.Equal(t, "/instant/*", result[0].Path, "threshold 1 should wildcard immediately")
@@ -415,7 +415,7 @@ func TestAnalyzeOpensThreshold1ImmediateWildcard(t *testing.T) {
 			{Path: "/instant/first/data", Flags: []string{"READ"}},
 			{Path: "/instant/second/data", Flags: []string{"WRITE"}},
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer2, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer2, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(result))
 		assert.Equal(t, "/instant/*", result[0].Path)
@@ -442,7 +442,7 @@ func TestAnalyzeOpensCollapseDoesNotAffectSiblingPrefixes(t *testing.T) {
 		types.OpenCalls{Path: "/beta/b2/file", Flags: []string{"WRITE"}},
 	)
 
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 
 	betaPaths := filterByPrefix(result, "/beta/")
@@ -467,7 +467,7 @@ func TestAnalyzeOpensFlagMergingAfterCollapse(t *testing.T) {
 			Flags: flags[i%len(flags)],
 		})
 	}
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result))
 	assert.ElementsMatch(t, []string{"APPEND", "READ", "WRITE"}, result[0].Flags, "flags should be merged and deduplicated")
@@ -491,7 +491,7 @@ func TestAnalyzeOpensMultipleLevelsOfCollapse(t *testing.T) {
 		}
 	}
 
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result), "double collapse should yield a single path")
 	assert.True(t,
@@ -509,7 +509,7 @@ func TestAnalyzeOpensExistingDynamicSegmentInInput(t *testing.T) {
 		{Path: "/data/\u22ef/config", Flags: []string{"READ"}},
 		{Path: "/data/specific/config", Flags: []string{"WRITE"}},
 	}
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 	assert.NoError(t, err)
 	assert.Equal(t, 1, len(result))
 	assert.Equal(t, "/data/\u22ef/config", result[0].Path)
@@ -585,7 +585,7 @@ func TestAnalyzeOpens_SbomPathsNeverCollapsed(t *testing.T) {
 			})
 		}
 
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, sbomSet)
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, sbomSet.ContainsOne)
 		assert.NoError(t, err)
 
 		// Every SBOM path must appear in the output with its exact original path
@@ -611,7 +611,7 @@ func TestAnalyzeOpens_SbomPathsNeverCollapsed(t *testing.T) {
 			Flags: []string{"READ", "MMAP"},
 		})
 
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, sbomSet)
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, sbomSet.ContainsOne)
 		assert.NoError(t, err)
 
 		for _, r := range result {
@@ -641,7 +641,7 @@ func TestAnalyzeOpens_SbomPathsNeverCollapsed(t *testing.T) {
 			Flags: []string{"READ"},
 		})
 
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, sbomSet)
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, sbomSet.ContainsOne)
 		assert.NoError(t, err)
 
 		varDataPaths := filterByPrefix(result, "/var/data/")
@@ -657,7 +657,7 @@ func TestAnalyzeOpens_SbomPathsNeverCollapsed(t *testing.T) {
 
 	t.Run("empty sbomSet does not protect any paths", func(t *testing.T) {
 		analyzer := dynamicpathdetector.NewPathAnalyzerWithConfigs(threshold, nil)
-		emptySbom := mapset.NewSet[string]()
+		var emptySbom func(string) bool
 
 		var input []types.OpenCalls
 		for i := 0; i < threshold+1; i++ {
@@ -767,7 +767,7 @@ func TestAnalyzeOpensOverlappingPrefixConfigs(t *testing.T) {
 				Flags: []string{"READ"},
 			})
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(result), "6 paths > threshold 5 should collapse to 1, got: %v", pathsFromResult(result))
 		assert.True(t,
@@ -788,7 +788,7 @@ func TestAnalyzeOpensOverlappingPrefixConfigs(t *testing.T) {
 			{Path: "/etc/config7", Flags: []string{"READ"}},
 			{Path: "/etc/config8", Flags: []string{"READ"}},
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 8, len(result), "/etc paths should NOT collapse (8 < 100), got: %v", pathsFromResult(result))
 	})
@@ -804,7 +804,7 @@ func TestAnalyzeOpensOverlappingPrefixConfigs(t *testing.T) {
 				Flags: []string{"READ"},
 			})
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, defaultThreshold, len(result),
 			"/var/log at exactly default threshold %d should NOT collapse", defaultThreshold)
@@ -815,7 +815,7 @@ func TestAnalyzeOpensOverlappingPrefixConfigs(t *testing.T) {
 			Path:  fmt.Sprintf("/var/log/app%d.log", defaultThreshold),
 			Flags: []string{"READ"},
 		})
-		result2, err := dynamicpathdetector.AnalyzeOpens(input, analyzer2, mapset.NewSet[string]())
+		result2, err := dynamicpathdetector.AnalyzeOpens(input, analyzer2, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(result2),
 			"/var/log exceeding default threshold %d should collapse", defaultThreshold)
@@ -830,7 +830,7 @@ func TestAnalyzeOpensOverlappingPrefixConfigs(t *testing.T) {
 			{Path: "/var/run/pid3.pid", Flags: []string{"READ"}},
 			{Path: "/var/run/pid4.pid", Flags: []string{"READ"}},
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(result), "4 paths > threshold 3 should collapse, got: %v", pathsFromResult(result))
 	})
@@ -840,7 +840,7 @@ func TestAnalyzeOpensOverlappingPrefixConfigs(t *testing.T) {
 		input := []types.OpenCalls{
 			{Path: "/app/service1/config", Flags: []string{"READ"}},
 		}
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 		assert.Equal(t, 1, len(result))
 		assert.Equal(t, "/app/*", result[0].Path, "threshold 1 should produce wildcard immediately")
@@ -866,7 +866,7 @@ func TestAnalyzeOpensOverlappingPrefixConfigs(t *testing.T) {
 			})
 		}
 
-		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, mapset.NewSet[string]())
+		result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, nil)
 		assert.NoError(t, err)
 
 		// /etc/apache2 paths should have collapsed

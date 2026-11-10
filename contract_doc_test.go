@@ -16,12 +16,14 @@ const contractDocPath = "../../../../docs/sbob-matcher-contract.md"
 
 const corpusJSONPath = "matchercorpus/corpus.json"
 
-var contractCitation = regexp.MustCompile(`\{\{(paths|args|subtract)\|([^}]+)\}\}`)
+var contractCitation = regexp.MustCompile(`\{\{(paths|args|subtract|execNames|sentinels)\|([^}]+)\}\}`)
 
 type contractCorpus struct {
-	Paths    []struct{ Name string } `json:"paths"`
-	Args     []struct{ Name string } `json:"args"`
-	Subtract []struct{ Name string } `json:"subtract"`
+	Paths     []struct{ Name string } `json:"paths"`
+	Args      []struct{ Name string } `json:"args"`
+	Subtract  []struct{ Name string } `json:"subtract"`
+	ExecNames []struct{ Name string } `json:"execNames"`
+	Sentinels []struct{ Name string } `json:"sentinels"`
 }
 
 func loadContractCorpus(t *testing.T) map[string]map[string]bool {
@@ -35,9 +37,21 @@ func loadContractCorpus(t *testing.T) map[string]map[string]bool {
 		t.Fatalf("parse corpus: %v", err)
 	}
 	named := map[string]map[string]bool{
-		"paths":    {},
-		"args":     {},
-		"subtract": {},
+		"paths":     {},
+		"args":      {},
+		"subtract":  {},
+		"execNames": {},
+		"sentinels": {},
+	}
+	for _, x := range c.ExecNames {
+		if x.Name != "" {
+			named["execNames"][x.Name] = true
+		}
+	}
+	for _, x := range c.Sentinels {
+		if x.Name != "" {
+			named["sentinels"][x.Name] = true
+		}
 	}
 	for _, x := range c.Paths {
 		if x.Name != "" {
@@ -91,7 +105,7 @@ func TestContract_EveryCitationResolvesToACase(t *testing.T) {
 func TestContract_EveryNamedCaseIsCitedByARule(t *testing.T) {
 	named := loadContractCorpus(t)
 	doc := loadContractDoc(t)
-	cited := map[string]map[string]bool{"paths": {}, "args": {}, "subtract": {}}
+	cited := map[string]map[string]bool{"paths": {}, "args": {}, "subtract": {}, "execNames": {}, "sentinels": {}}
 	for _, m := range contractCitation.FindAllStringSubmatch(doc, -1) {
 		cited[m[1]][m[2]] = true
 	}

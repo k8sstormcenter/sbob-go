@@ -5,6 +5,7 @@ import (
 
 	dp "github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector"
 	"github.com/kubescape/storage/pkg/registry/file/dynamicpathdetector/matchercorpus"
+	"github.com/kubescape/storage/pkg/registry/file/networkmatch"
 )
 
 func TestMatcherCorpus(t *testing.T) {
@@ -37,5 +38,38 @@ func TestMatcherCorpus(t *testing.T) {
 				t.Fatalf("args[%d]: CompareExecArgs(%q, %q) = %v, want %v", i, c.Profile, c.Runtime, got, c.Want)
 			}
 		})
+	}
+}
+
+func TestMatcherCorpus_ExecNames(t *testing.T) {
+	cases := matchercorpus.ExecNames()
+	if len(cases) == 0 {
+		t.Fatal("corpus carries no exec name cases")
+	}
+	for i, c := range cases {
+		if got := dp.SameExecName(c.Recorded, c.Invoked); got != c.Want {
+			t.Errorf("execNames[%d] %s: SameExecName(%q, %q) = %v, want %v", i, c.Name, c.Recorded, c.Invoked, got, c.Want)
+		}
+	}
+}
+
+func TestMatcherCorpus_Sentinels(t *testing.T) {
+	cases := matchercorpus.Sentinels()
+	if len(cases) == 0 {
+		t.Fatal("corpus carries no sentinel cases")
+	}
+	for i, c := range cases {
+		var got bool
+		switch c.Surface {
+		case "capabilities", "syscalls":
+			got = dp.MatchAny(c.Profile, c.Observed)
+		case "dnsNames":
+			got = networkmatch.MatchDNS(c.Profile, c.Observed)
+		default:
+			t.Fatalf("sentinels[%d]: unknown surface %q", i, c.Surface)
+		}
+		if got != c.Want {
+			t.Errorf("sentinels[%d] %s: %v vs %q = %v, want %v", i, c.Name, c.Profile, c.Observed, got, c.Want)
+		}
 	}
 }

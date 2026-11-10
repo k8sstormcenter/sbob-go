@@ -1215,5 +1215,134 @@
       },
       "want": true
     }
+  ],
+  "execNames": [
+    {
+      "name": "exec name: basename of a full path equals the bare name",
+      "recorded": "/bin/sh",
+      "invoked": "sh",
+      "want": true
+    },
+    {
+      "name": "exec name: bare recorded name equals a full invoked path",
+      "recorded": "sh",
+      "invoked": "/bin/sh",
+      "want": true
+    },
+    {
+      "name": "exec name: same basename under different directories",
+      "recorded": "/usr/bin/python3",
+      "invoked": "/usr/local/bin/python3",
+      "want": true
+    },
+    {
+      "name": "exec name: different names do not match",
+      "recorded": "/bin/sh",
+      "invoked": "bash",
+      "want": false
+    },
+    {
+      "name": "exec name: a multiplexer binary is not its applet",
+      "recorded": "busybox",
+      "invoked": "sh",
+      "want": false
+    },
+    {
+      "name": "exec name: an empty recorded name matches nothing",
+      "recorded": "",
+      "invoked": "sh",
+      "want": false
+    }
+  ],
+  "sentinels": [
+    {
+      "name": "sentinel: a bare star admits any capability",
+      "surface": "capabilities",
+      "profile": [
+        "*"
+      ],
+      "observed": "CAP_SYS_ADMIN",
+      "want": true
+    },
+    {
+      "name": "sentinel: a listed capability admits only itself",
+      "surface": "capabilities",
+      "profile": [
+        "CAP_CHOWN"
+      ],
+      "observed": "CAP_SYS_ADMIN",
+      "want": false
+    },
+    {
+      "name": "sentinel: a bare star admits any syscall",
+      "surface": "syscalls",
+      "profile": [
+        "*"
+      ],
+      "observed": "ptrace",
+      "want": true
+    },
+    {
+      "name": "sentinel: a star beside literals still admits everything",
+      "surface": "syscalls",
+      "profile": [
+        "read",
+        "*"
+      ],
+      "observed": "bpf",
+      "want": true
+    },
+    {
+      "name": "sentinel: an empty list admits nothing",
+      "surface": "syscalls",
+      "profile": [],
+      "observed": "read",
+      "want": false
+    },
+    {
+      "name": "sentinel: a bare star admits any DNS name",
+      "surface": "dnsNames",
+      "profile": [
+        "*"
+      ],
+      "observed": "evil.example.",
+      "want": true
+    },
+    {
+      "name": "sentinel: a bare star admits a single-label name",
+      "surface": "dnsNames",
+      "profile": [
+        "*"
+      ],
+      "observed": "localhost",
+      "want": true
+    },
+    {
+      "name": "sentinel: a bare star does not admit an empty observation",
+      "surface": "dnsNames",
+      "profile": [
+        "*"
+      ],
+      "observed": "",
+      "want": false
+    },
+    {
+      "name": "sentinel: star dot star needs at least two labels",
+      "surface": "dnsNames",
+      "profile": [
+        "*.*"
+      ],
+      "observed": "a.b.",
+      "want": true
+    },
+    {
+      "name": "sentinel: star dot star does not admit a single label",
+      "surface": "dnsNames",
+      "profile": [
+        "*.*"
+      ],
+      "observed": "a.",
+      "want": false
+    }
   ]
 }

@@ -5,7 +5,6 @@ import (
 	"strconv"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 )
 
@@ -92,11 +91,11 @@ func (ea *ExecAnalyzer) thresholdFor(path string) int {
 type argNode struct {
 	children map[string]*argNode
 	terminal bool // an argv ends at this node
-	envs     mapset.Set[string]
+	envs     stringSet
 }
 
 func newArgNode() *argNode {
-	return &argNode{children: make(map[string]*argNode), envs: mapset.NewThreadUnsafeSet[string]()}
+	return &argNode{children: make(map[string]*argNode), envs: stringSet{}}
 }
 
 // AnalyzeExecs collapses high-variety exec arguments into the exec wildcards
@@ -133,12 +132,12 @@ func AnalyzeExecs(execs []types.ExecCalls, analyzer *ExecAnalyzer) []types.ExecC
 	}
 
 	out := make([]types.ExecCalls, 0, len(execs))
-	seenPassthrough := mapset.NewThreadUnsafeSet[string]()
+	seenPassthrough := stringSet{}
 	byPath := make(map[string][]types.ExecCalls)
 	var paths []string
 	for _, e := range execs {
 		if e.ArgsRequired || len(e.Args) == 0 {
-			if seenPassthrough.Add(execKey(e)) {
+			if seenPassthrough.add(execKey(e)) {
 				out = append(out, e)
 			}
 			continue
@@ -193,7 +192,7 @@ func analyzeBinaryExecs(path string, execs []types.ExecCalls, threshold int) []t
 			node = child
 		}
 		node.terminal = true
-		node.envs.Append(e.Envs...)
+		node.envs.addAll(e.Envs...)
 	}
 
 	var patterns []types.ExecCalls
@@ -215,16 +214,16 @@ func analyzeBinaryExecs(path string, execs []types.ExecCalls, threshold int) []t
 // their envs. Order of first appearance is kept.
 func dedupeByArgv(execs []types.ExecCalls) []types.ExecCalls {
 	index := make(map[string]int, len(execs))
-	envs := make([]mapset.Set[string], 0, len(execs))
+	envs := make([]stringSet, 0, len(execs))
 	out := make([]types.ExecCalls, 0, len(execs))
 	for _, e := range execs {
 		key := tokensKey(e.Args)
 		if i, ok := index[key]; ok {
-			envs[i].Append(e.Envs...)
+			envs[i].addAll(e.Envs...)
 			continue
 		}
 		index[key] = len(out)
-		envs = append(envs, mapset.NewThreadUnsafeSet(e.Envs...))
+		envs = append(envs, newStringSet(e.Envs...))
 		out = append(out, types.ExecCalls{Path: e.Path, Args: e.Args})
 	}
 	for i := range out {
@@ -248,18 +247,18 @@ func dedupeByArgv(execs []types.ExecCalls) []types.ExecCalls {
 // * is opens glob syntax. Every shape is verified with CompareExecArgs against
 // its original. Input is not mutated.
 func collapseArgv0(execs []types.ExecCalls, threshold int) []types.ExecCalls {
-	distinct := mapset.NewThreadUnsafeSet[string]()
+	distinct := stringSet{}
 	for _, e := range execs {
-		distinct.Add(e.Args[0])
+		distinct.add(e.Args[0])
 	}
-	if distinct.Cardinality() <= threshold {
+	if len(distinct) <= threshold {
 		return execs
 	}
 
-	mapped := make(map[string]string, distinct.Cardinality())
+	mapped := make(map[string]string, len(distinct))
 	tries := make(map[int]*argNode)
 	var literals []string
-	for argv0 := range distinct.Iter() {
+	for argv0 := range distinct {
 		mapped[argv0] = argv0
 		if strings.Contains(argv0, DynamicIdentifier) {
 			continue
@@ -302,11 +301,11 @@ func collapseArgv0(execs []types.ExecCalls, threshold int) []types.ExecCalls {
 		}
 	}
 
-	shapes := mapset.NewThreadUnsafeSet[string]()
+	shapes := stringSet{}
 	for _, shape := range mapped {
-		shapes.Add(shape)
+		shapes.add(shape)
 	}
-	if shapes.Cardinality() > threshold {
+	if len(shapes) > threshold {
 		for argv0 := range mapped {
 			mapped[argv0] = DynamicIdentifier
 		}
@@ -343,10 +342,9 @@ func collapseArgNode(node *argNode, threshold int) {
 // mergeArgNode unions src's subtree into dst.
 func mergeArgNode(dst, src *argNode) {
 	dst.terminal = dst.terminal || src.terminal
-	src.envs.Each(func(env string) bool {
-		dst.envs.Add(env)
-		return false
-	})
+	for env := range src.envs {
+		dst.envs.add(env)
+	}
 	for arg, child := range src.children {
 		if existing, ok := dst.children[arg]; ok {
 			mergeArgNode(existing, child)
@@ -369,16 +367,16 @@ func emitArgPatterns(node *argNode, path string, prefix []string, out *[]types.E
 // anyArgsPerArgv0 is the per-binary ceiling: one [argv0, ⋯⋯] entry per
 // distinct argv0, carrying the union of that argv0's envs.
 func anyArgsPerArgv0(path string, execs []types.ExecCalls) []types.ExecCalls {
-	envs := make(map[string]mapset.Set[string])
+	envs := make(map[string]stringSet)
 	var argv0s []string
 	for _, e := range execs {
 		set, ok := envs[e.Args[0]]
 		if !ok {
-			set = mapset.NewThreadUnsafeSet[string]()
+			set = stringSet{}
 			envs[e.Args[0]] = set
 			argv0s = append(argv0s, e.Args[0])
 		}
-		set.Append(e.Envs...)
+		set.addAll(e.Envs...)
 	}
 	out := make([]types.ExecCalls, 0, len(argv0s))
 	for _, argv0 := range argv0s {
@@ -440,7 +438,7 @@ func consolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
 		}
 	}
 	appended := make([]bool, len(sorted))
-	merged := map[int]mapset.Set[string]{}
+	merged := map[int]stringSet{}
 	for i := range sorted {
 		if len(coverers[i]) == 0 {
 			continue
@@ -465,10 +463,10 @@ func consolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
 		}
 		set, ok := merged[into]
 		if !ok {
-			set = mapset.NewThreadUnsafeSet(sorted[into].Envs...)
+			set = newStringSet(sorted[into].Envs...)
 			merged[into] = set
 		}
-		set.Append(sorted[i].Envs...)
+		set.addAll(sorted[i].Envs...)
 	}
 
 	slices.Sort(kept)
@@ -485,11 +483,11 @@ func consolidateExecs(execs []types.ExecCalls) []types.ExecCalls {
 	return out
 }
 
-func sortedEnvs(set mapset.Set[string]) []string {
-	if set.Cardinality() == 0 {
+func sortedEnvs(set stringSet) []string {
+	if len(set) == 0 {
 		return nil
 	}
-	return mapset.Sorted(set)
+	return set.sorted()
 }
 
 func normalizedEnvs(envs []string) []string {

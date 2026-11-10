@@ -41,10 +41,27 @@ type SubtractCase struct {
 	Want     bool    `json:"want"`
 }
 
+type ExecNameCase struct {
+	Name     string `json:"name,omitempty"`
+	Recorded string `json:"recorded"`
+	Invoked  string `json:"invoked"`
+	Want     bool   `json:"want"`
+}
+
+type SentinelCase struct {
+	Name     string   `json:"name,omitempty"`
+	Surface  string   `json:"surface"`
+	Profile  []string `json:"profile"`
+	Observed string   `json:"observed"`
+	Want     bool     `json:"want"`
+}
+
 type Corpus struct {
-	Paths    []PathCase     `json:"paths"`
-	Args     []ArgCase      `json:"args"`
-	Subtract []SubtractCase `json:"subtract,omitempty"`
+	Paths     []PathCase     `json:"paths"`
+	Args      []ArgCase      `json:"args"`
+	Subtract  []SubtractCase `json:"subtract,omitempty"`
+	ExecNames []ExecNameCase `json:"execNames,omitempty"`
+	Sentinels []SentinelCase `json:"sentinels,omitempty"`
 }
 
 var (
@@ -94,4 +111,20 @@ func Subtracts() []SubtractCase {
 func Version() string {
 	sum := sha256.Sum256(raw)
 	return hex.EncodeToString(sum[:])
+}
+
+func ExecNames() []ExecNameCase {
+	load()
+	if err != nil {
+		panic(err)
+	}
+	return corpus.ExecNames
+}
+
+func Sentinels() []SentinelCase {
+	load()
+	if err != nil {
+		panic(err)
+	}
+	return corpus.Sentinels
 }

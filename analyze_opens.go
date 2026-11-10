@@ -5,17 +5,12 @@ import (
 	"slices"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set/v2"
 	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 )
 
-func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, sbomSet mapset.Set[string]) ([]types.OpenCalls, error) {
+func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, pinned func(string) bool) ([]types.OpenCalls, error) {
 	if opens == nil {
 		return nil, nil
-	}
-
-	if sbomSet == nil {
-		sbomSet = mapset.NewThreadUnsafeSet[string]()
 	}
 
 	dynamicOpens := make(map[string]types.OpenCalls)
@@ -25,7 +20,7 @@ func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, sbomSet mapse
 
 	for i := range opens {
 		// sbomSet files have to be always present in the dynamicOpens
-		if sbomSet.ContainsOne(opens[i].Path) {
+		if pinned != nil && pinned(opens[i].Path) {
 			dynamicOpens[opens[i].Path] = opens[i]
 			continue
 		}
@@ -37,7 +32,7 @@ func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, sbomSet mapse
 
 		if result != opens[i].Path {
 			if existing, ok := dynamicOpens[result]; ok {
-				existing.Flags = mapset.Sorted(mapset.NewThreadUnsafeSet(slices.Concat(existing.Flags, opens[i].Flags)...))
+				existing.Flags = newStringSet(slices.Concat(existing.Flags, opens[i].Flags)...).sorted()
 				dynamicOpens[result] = existing
 			} else {
 				dynamicOpen := types.OpenCalls{Path: result, Flags: opens[i].Flags}
@@ -52,7 +47,7 @@ func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, sbomSet mapse
 		return strings.Compare(a.Path, b.Path)
 	})
 
-	return consolidateOpens(result, sbomSet), nil
+	return consolidateOpens(result, pinned), nil
 }
 
 // consolidateOpens drops any literal Open whose path is already covered
@@ -75,7 +70,7 @@ func AnalyzeOpens(opens []types.OpenCalls, analyzer *PathAnalyzer, sbomSet mapse
 // Subsumption check uses the same CompareDynamic the runtime matcher
 // (CEL `ap.was_opened`) uses, so both sides agree on what "covered"
 // means at every depth.
-func consolidateOpens(opens []types.OpenCalls, sbomSet mapset.Set[string]) []types.OpenCalls {
+func consolidateOpens(opens []types.OpenCalls, pinned func(string) bool) []types.OpenCalls {
 	if len(opens) <= 1 {
 		return opens
 	}
@@ -117,7 +112,7 @@ func consolidateOpens(opens []types.OpenCalls, sbomSet mapset.Set[string]) []typ
 		if isPattern[i] {
 			continue // patterns always survive
 		}
-		if sbomSet != nil && sbomSet.ContainsOne(o.Path) {
+		if pinned != nil && pinned(o.Path) {
 			continue // SBOM paths always survive
 		}
 		best := -1
@@ -127,7 +122,7 @@ func consolidateOpens(opens []types.OpenCalls, sbomSet mapset.Set[string]) []typ
 			}
 		}
 		if best >= 0 {
-			opens[best].Flags = mapset.Sorted(mapset.NewThreadUnsafeSet(slices.Concat(opens[best].Flags, o.Flags)...))
+			opens[best].Flags = newStringSet(slices.Concat(opens[best].Flags, o.Flags)...).sorted()
 			keep[i] = false
 		}
 	}

@@ -7,9 +7,6 @@ import (
 	"net/url"
 	"strings"
 
-	mapset "github.com/deckarep/golang-set/v2"
-	"github.com/kubescape/go-logger"
-	loggerhelpers "github.com/kubescape/go-logger/helpers"
 	types "github.com/kubescape/storage/pkg/apis/softwarecomposition"
 	"github.com/kubescape/storage/pkg/apis/softwarecomposition/consts"
 )
@@ -61,7 +58,9 @@ func ProcessEndpoint(endpoint *types.HTTPEndpoint, analyzer *PathAnalyzer, newEn
 		for i, e := range newEndpoints {
 			if getEndpointKey(e) == getEndpointKey(endpoint) {
 				newEndpoints[i].Methods = MergeStrings(e.Methods, endpoint.Methods)
-				mergeHeaders(e, endpoint)
+				if err := mergeHeaders(e, endpoint); err != nil {
+					return nil, err
+				}
 				return nil, nil
 			}
 		}
@@ -199,7 +198,7 @@ func MergeDuplicateEndpoints(endpoints []*types.HTTPEndpoint) []*types.HTTPEndpo
 
 		if existing, found := seen[key]; found {
 			existing.Methods = MergeStrings(existing.Methods, endpoint.Methods)
-			mergeHeaders(existing, endpoint)
+			_ = mergeHeaders(existing, endpoint)
 			continue
 		}
 
@@ -217,7 +216,7 @@ func MergeDuplicateEndpoints(endpoints []*types.HTTPEndpoint) []*types.HTTPEndpo
 					continue
 				}
 				endpoint.Methods = MergeStrings(endpoint.Methods, e.Methods)
-				mergeHeaders(endpoint, e)
+				_ = mergeHeaders(endpoint, e)
 				delete(seen, k)
 				newEndpoints = removeEndpoint(newEndpoints, e)
 			}
@@ -235,7 +234,7 @@ func MergeDuplicateEndpoints(endpoints []*types.HTTPEndpoint) []*types.HTTPEndpo
 		wildcardKey := buildEndpointKey(":0"+pathPart, endpoint.Direction, endpoint.Internal)
 		if existing, found := seen[wildcardKey]; found {
 			existing.Methods = MergeStrings(existing.Methods, endpoint.Methods)
-			mergeHeaders(existing, endpoint)
+			_ = mergeHeaders(existing, endpoint)
 			continue
 		}
 
@@ -283,21 +282,20 @@ func buildEndpointKey(endpoint string, direction consts.NetworkDirection, intern
 	return fmt.Sprintf("%s|%s|%t", endpoint, direction, internal)
 }
 
-func mergeHeaders(existing, new *types.HTTPEndpoint) {
+func mergeHeaders(existing, new *types.HTTPEndpoint) error {
 	existingHeaders, err := existing.GetHeaders()
 	if err != nil {
-		return
+		return err
 	}
 
 	newHeaders, err := new.GetHeaders()
 	if err != nil {
-		return
+		return err
 	}
 
 	for k, v := range newHeaders {
 		if _, exists := existingHeaders[k]; exists {
-			set := mapset.NewSet[string](append(existingHeaders[k], v...)...)
-			existingHeaders[k] = set.ToSlice()
+			existingHeaders[k] = newStringSet(append(existingHeaders[k], v...)...).sorted()
 		} else {
 			existingHeaders[k] = v
 		}
@@ -305,16 +303,11 @@ func mergeHeaders(existing, new *types.HTTPEndpoint) {
 
 	rawJSON, err := json.Marshal(existingHeaders)
 	if err != nil {
-		// Don't pollute stdout from a library function. The caller has
-		// no signal-back path here (mergeHeaders is a void helper) so
-		// log at Debug and bail — leaving Headers untouched is the
-		// safer choice than corrupting them with a partial marshal.
-		logger.L().Debug("mergeHeaders: failed to marshal merged headers, leaving existing untouched",
-			loggerhelpers.Error(err))
-		return
+		return err
 	}
 
 	existing.Headers = rawJSON
+	return nil
 }
 
 func convertPointerToValueSlice(m []*types.HTTPEndpoint) []types.HTTPEndpoint {

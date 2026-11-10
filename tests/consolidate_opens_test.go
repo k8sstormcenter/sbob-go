@@ -130,7 +130,7 @@ func TestConsolidateOpens_SbomPathsNeverSubsumed(t *testing.T) {
 		{Path: "/usr/lib/libz.so.1", Flags: []string{"O_RDONLY"}},
 		{Path: "/usr/lib/libm.so.6", Flags: []string{"O_RDONLY"}},
 	}
-	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, sbomSet)
+	result, err := dynamicpathdetector.AnalyzeOpens(input, analyzer, sbomSet.ContainsOne)
 	assert.NoError(t, err)
 
 	paths := extractPathsFromOpens(result)
