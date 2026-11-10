@@ -134,11 +134,11 @@ func TestMatchDNS_ListAcceptIfAnyMatches(t *testing.T) {
 		observed string
 		want     bool
 	}{
-		{"api.stripe.com.", true},        // literal hit
-		{"webhooks.stripe.com.", true},   // *.stripe.com.
-		{"v1.api.stripe.com.", false},    // two labels deep, *.stripe.com. only allows one
-		{"api.partner.io.", true},        // literal hit
-		{"api.example.com.", false},      // not in any entry
+		{"api.stripe.com.", true},      // literal hit
+		{"webhooks.stripe.com.", true}, // *.stripe.com.
+		{"v1.api.stripe.com.", false},  // two labels deep, *.stripe.com. only allows one
+		{"api.partner.io.", true},      // literal hit
+		{"api.example.com.", false},    // not in any entry
 	}
 	for _, tc := range cases {
 		t.Run(tc.observed, func(t *testing.T) {

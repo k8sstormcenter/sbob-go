@@ -22,10 +22,11 @@ type DNSMatcher struct {
 }
 
 type dnsPattern struct {
-	labels         []string // labels in declaration order, lowercased, trailing dot stripped
-	hasLeadingStar bool     // labels[0] == "*"
-	hasTrailingStar bool    // labels[len-1] == "*"
-	valid          bool     // false if pattern was malformed (e.g. "**" or empty label)
+	labels          []string
+	hasLeadingStar  bool
+	hasTrailingStar bool
+	any             bool
+	valid           bool
 }
 
 // CompileDNS builds a DNSMatcher from profile entries.
@@ -115,12 +116,8 @@ func compileDNSPattern(entry string) dnsPattern {
 			p.hasTrailingStar = true
 		}
 	}
-	// "*" alone (single-label pattern) is degenerate. Treat as
-	// leading-star with one label semantics — but since there's no suffix
-	// to match against, it's only useful matching single-label observations.
-	// Spec §5.8 doesn't bless this; reject for safety.
 	if len(labels) == 1 && p.hasLeadingStar {
-		return dnsPattern{}
+		return dnsPattern{any: true, valid: true}
 	}
 	return p
 }
@@ -130,15 +127,18 @@ func compileDNSPattern(entry string) dnsPattern {
 // Algorithm: walk pattern labels left-to-right against observed labels,
 // applying token semantics:
 //
-//   leading "*"  (only at index 0): consumes EXACTLY ONE observed label  (RFC 4592)
-//   "⋯"          (any position):    consumes EXACTLY ONE observed label
-//   trailing "*" (only at last):    consumes ONE OR MORE observed labels (§5.8)
-//   literal:                        byte-equality (already lowercased)
+//	leading "*"  (only at index 0): consumes EXACTLY ONE observed label  (RFC 4592)
+//	"⋯"          (any position):    consumes EXACTLY ONE observed label
+//	trailing "*" (only at last):    consumes ONE OR MORE observed labels (§5.8)
+//	literal:                        byte-equality (already lowercased)
 //
 // Mid-position "*" tokens (i.e. "*" not at index 0 and not at last index)
 // are treated as DynamicLabel-equivalent (one label) — but spec restricts
 // declaration to leading/trailing only; admission validates the position.
 func matchDNSPattern(p *dnsPattern, obs []string) bool {
+	if p.any {
+		return len(obs) > 0
+	}
 	plabels := p.labels
 	pi := 0
 	oi := 0

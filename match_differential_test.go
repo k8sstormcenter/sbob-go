@@ -147,9 +147,8 @@ func dnsPatternRegexp(entry string) (*regexp.Regexp, bool) {
 			return nil, false
 		}
 	}
-	// A lone leading "*" (single label) is degenerate and rejected.
 	if len(labels) == 1 && labels[0] == networkmatch.DNSWildcardLabel {
-		return nil, false
+		return regexp.MustCompile(`^[^.]+(?:\.[^.]+)*$`), true
 	}
 
 	var sb strings.Builder

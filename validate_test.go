@@ -46,7 +46,7 @@ func TestValidateDNSEntry(t *testing.T) {
 		{"recursive-double-star", "**", true},
 		{"recursive-in-middle", "foo.**.bar.", true},
 		{"empty-inner-label", "foo..bar.", true},
-		{"lone-star", "*", true},
+		{"lone-star", "*", false},
 		{"mid-star-rejected", "foo.*.bar.", true},
 	}
 	for _, tc := range cases {
