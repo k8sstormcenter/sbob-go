@@ -7,6 +7,7 @@ var Catalogue = []Rule{
 	{Name: "process-arguments", Section: "execs[].args", EngineID: "R0040", Events: []string{"exec"}},
 	{Name: "file-access", Section: "opens[].path", EngineID: "R0002", Events: []string{"open"}},
 	{Name: "domain-communication", Section: "egress[].dnsNames", EngineID: "R0005", Events: []string{"dns"}},
+	{Name: "dns-answer-address", Section: "egress[].ipAddresses", EngineID: "R0013", Events: []string{"dns"}, Proposed: true},
 	{Name: "egress-traffic", Section: "egress[]", EngineID: "R0011", Events: []string{"network"}},
 	{Name: "ingress-traffic", Section: "ingress[]", EngineID: "R0012", Events: []string{"network"}},
 	{Name: "syscall-use", Section: "syscalls", EngineID: "R0003", Events: []string{"syscall"}, Proposed: true},
