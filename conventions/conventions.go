@@ -1,5 +1,7 @@
 package conventions
 
+import "sync"
+
 type Entry struct {
 	Key     string
 	Legacy  string
@@ -21,9 +23,18 @@ type Retired struct {
 }
 
 var (
-	labelIndex      = index(Labels)
-	annotationIndex = index(Annotations)
+	indexOnce       sync.Once
+	labelIndex      map[string]int
+	annotationIndex map[string]int
 )
+
+func indexes() (map[string]int, map[string]int) {
+	indexOnce.Do(func() {
+		labelIndex = index(Labels)
+		annotationIndex = index(Annotations)
+	})
+	return labelIndex, annotationIndex
+}
 
 func index(entries []Entry) map[string]int {
 	m := make(map[string]int, 2*len(entries))
@@ -37,7 +48,8 @@ func index(entries []Entry) map[string]int {
 }
 
 func Label(key string) (Entry, bool) {
-	i, ok := labelIndex[key]
+	labels, _ := indexes()
+	i, ok := labels[key]
 	if !ok {
 		return Entry{}, false
 	}
@@ -45,7 +57,8 @@ func Label(key string) (Entry, bool) {
 }
 
 func Annotation(key string) (Entry, bool) {
-	i, ok := annotationIndex[key]
+	_, annotations := indexes()
+	i, ok := annotations[key]
 	if !ok {
 		return Entry{}, false
 	}
