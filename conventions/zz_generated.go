@@ -5,12 +5,28 @@ package conventions
 const (
 	SpecVersion                             = "0.1.0"
 	Prefix                                  = "sbob"
+	GroupProfiles                           = "profiles.sbob"
+	GroupRules                              = "rules.sbob"
+	LegacyGroupProfiles                     = "spdx.softwarecomposition.kubescape.io"
+	LegacyGroupRules                        = "kubescape.io"
 	KindRuntimeProfile                      = "RuntimeProfile"
+	VersionRuntimeProfile                   = "v1beta1"
+	APIVersionRuntimeProfile                = "profiles.sbob/v1beta1"
+	ResourceRuntimeProfile                  = "runtimeprofiles"
 	LegacyKindContainerProfile              = "ContainerProfile"
+	LegacyVersionContainerProfile           = "v1beta1"
+	LegacyAPIVersionContainerProfile        = "spdx.softwarecomposition.kubescape.io/v1beta1"
+	LegacyResourceContainerProfile          = "containerprofiles"
 	KindCollapseConfiguration               = "CollapseConfiguration"
 	KindSeccompProfile                      = "SeccompProfile"
 	KindRules                               = "Rules"
+	LegacyVersionRules                      = "v1"
+	LegacyAPIVersionRules                   = "kubescape.io/v1"
+	LegacyResourceRules                     = "rules"
 	KindRuntimeRuleAlertBinding             = "RuntimeRuleAlertBinding"
+	LegacyVersionRuntimeRuleAlertBinding    = "v1"
+	LegacyAPIVersionRuntimeRuleAlertBinding = "kubescape.io/v1"
+	LegacyResourceRuntimeRuleAlertBinding   = "runtimerulealertbindings"
 	StatusInitializing                      = "initializing"
 	StatusReady                             = "ready"
 	StatusCompleted                         = "completed"
@@ -25,6 +41,7 @@ const (
 	LabelProfileRole                        = "sbob/profile-role"
 	LegacyLabelProfileRole                  = "kubescape.io/profile-role"
 	ValueProfileRoleShadow                  = "shadow"
+	ValueProfileRoleSuggestion              = "suggestion"
 	LabelLearning                           = "sbob/learning"
 	LegacyLabelLearning                     = "kubescape.io/learning"
 	LabelInstanceTemplateHash               = "sbob/instance-template-hash"
@@ -71,6 +88,16 @@ const (
 	LegacyLabelCanary                       = "kubescape.io/canary"
 	LabelUserDefinedNetwork                 = "sbob/user-defined-network"
 	LegacyLabelUserDefinedNetwork           = "kubescape.io/user-defined-network"
+	LabelSuggestedFrom                      = "sbob/suggested-from"
+	LegacyLabelSuggestedFrom                = "kubescape.io/suggested-from"
+	LabelDeltaOf                            = "sbob/delta-of"
+	LegacyLabelDeltaOf                      = "kubescape.io/delta-of"
+	LabelPeerNamespace                      = "sbob/peer-namespace"
+	LegacyLabelPeerNamespace                = "kubescape.io/peer-namespace"
+	LabelPeerWorkload                       = "sbob/peer-workload"
+	LegacyLabelPeerWorkload                 = "kubescape.io/peer-workload"
+	LabelSuggestBundle                      = "sbob/suggest-bundle"
+	LegacyLabelSuggestBundle                = "kubescape.io/suggest-bundle"
 	AnnotationSpecVersion                   = "sbob/spec-version"
 	LegacyAnnotationSpecVersion             = "sbob.io/spec-version"
 	AnnotationStatus                        = "sbob/status"
@@ -148,22 +175,51 @@ const (
 	LegacyAnnotationWorkloadAPIGroup        = "kubescape.io/workload-api-group"
 	AnnotationWorkloadAPIVersion            = "sbob/workload-api-version"
 	LegacyAnnotationWorkloadAPIVersion      = "kubescape.io/workload-api-version"
+	AnnotationTimeline                      = "sbob/timeline"
+	LegacyAnnotationTimeline                = "kubescape.io/timeline"
+	AnnotationSuggestRequest                = "sbob/suggest-request"
+	LegacyAnnotationSuggestRequest          = "kubescape.io/suggest-request"
+	AnnotationSuggestKind                   = "sbob/suggest-kind"
+	LegacyAnnotationSuggestKind             = "kubescape.io/suggest-kind"
+	ValueSuggestKindFull                    = "full"
+	ValueSuggestKindDelta                   = "delta"
+	AnnotationSuggestionSHA256              = "sbob/suggestion-sha256"
+	LegacyAnnotationSuggestionSHA256        = "kubescape.io/suggestion-sha256"
+	AnnotationSuggestionSourceRV            = "sbob/suggestion-source-rv"
+	LegacyAnnotationSuggestionSourceRV      = "kubescape.io/suggestion-source-rv"
+	AnnotationSuggestionVersion             = "sbob/suggestion-version"
+	LegacyAnnotationSuggestionVersion       = "kubescape.io/suggestion-version"
+	AnnotationCreatedBy                     = "sbob/created-by"
+	LegacyAnnotationCreatedBy               = "kubescape.io/created-by"
+	AnnotationExpiresAt                     = "sbob/expires-at"
+	LegacyAnnotationExpiresAt               = "kubescape.io/expires-at"
+	AnnotationEvidence                      = "sbob/evidence"
+	LegacyAnnotationEvidence                = "kubescape.io/evidence"
+	ValueEvidenceClient                     = "client"
+	ValueEvidenceShadow                     = "shadow"
+	ValueEvidenceBoth                       = "both"
+	AnnotationPeerSelf                      = "sbob/peer-self"
+	LegacyAnnotationPeerSelf                = "kubescape.io/peer-self"
+	AnnotationDeltaBaseOnly                 = "sbob/delta-base-only"
+	LegacyAnnotationDeltaBaseOnly           = "kubescape.io/delta-base-only"
+	AnnotationRekorBundle                   = "sbob/rekor-bundle"
+	LegacyAnnotationRekorBundle             = "signature.kubescape.io/rekor-bundle"
 	ImageLabelSpecVersion                   = "sbob.spec-version"
 	ImageLabelLibraryVersion                = "sbob.library-version"
 )
 
 var LegacyPrefixes = []string{"kubescape.io", "signature.kubescape.io"}
 
-var APIGroups = []string{"profiles.sbob", "rules.sbob"}
+var APIGroups = []string{GroupProfiles, GroupRules}
 
-var LegacyAPIGroups = []string{"spdx.softwarecomposition.kubescape.io", "kubescape.io"}
+var LegacyAPIGroups = []string{LegacyGroupProfiles, LegacyGroupRules}
 
 var Kinds = []Kind{
-	{Name: KindRuntimeProfile, Group: "profiles.sbob", LegacyName: LegacyKindContainerProfile, LegacyGroup: "spdx.softwarecomposition.kubescape.io", SubjectValues: []string{"container", "host"}},
-	{Name: KindCollapseConfiguration, Group: "profiles.sbob", LegacyGroup: "spdx.softwarecomposition.kubescape.io"},
-	{Name: KindSeccompProfile, Group: "profiles.sbob", LegacyGroup: "spdx.softwarecomposition.kubescape.io"},
-	{Name: KindRules, Group: "rules.sbob", LegacyGroup: "kubescape.io"},
-	{Name: KindRuntimeRuleAlertBinding, Group: "rules.sbob", LegacyGroup: "kubescape.io"},
+	{Name: KindRuntimeProfile, Group: GroupProfiles, Version: VersionRuntimeProfile, Resource: ResourceRuntimeProfile, LegacyName: LegacyKindContainerProfile, LegacyGroup: LegacyGroupProfiles, LegacyVersion: LegacyVersionContainerProfile, LegacyResource: LegacyResourceContainerProfile, SubjectValues: []string{"container", "host"}},
+	{Name: KindCollapseConfiguration, Group: GroupProfiles, LegacyGroup: LegacyGroupProfiles},
+	{Name: KindSeccompProfile, Group: GroupProfiles, LegacyGroup: LegacyGroupProfiles},
+	{Name: KindRules, Group: GroupRules, LegacyGroup: LegacyGroupRules, LegacyVersion: LegacyVersionRules, LegacyResource: LegacyResourceRules},
+	{Name: KindRuntimeRuleAlertBinding, Group: GroupRules, LegacyGroup: LegacyGroupRules, LegacyVersion: LegacyVersionRuntimeRuleAlertBinding, LegacyResource: LegacyResourceRuntimeRuleAlertBinding},
 }
 
 var StatusValues = []string{StatusInitializing, StatusReady, StatusCompleted, StatusFailed, StatusTooLarge, StatusIncomplete, StatusMissingRuntime}
@@ -172,7 +228,7 @@ var CompletionValues = []string{CompletionPartial, CompletionComplete}
 
 var Labels = []Entry{
 	{Key: LabelUserDefinedProfile, Legacy: LegacyLabelUserDefinedProfile, Meaning: "binding label on a Pod or Node naming the authored document"},
-	{Key: LabelProfileRole, Legacy: LegacyLabelProfileRole, Values: []string{"shadow"}, Meaning: "role of a learned document"},
+	{Key: LabelProfileRole, Legacy: LegacyLabelProfileRole, Values: []string{"shadow", "suggestion"}, Meaning: "role of a learned document or of a proposal computed from one"},
 	{Key: LabelLearning, Legacy: LegacyLabelLearning, Meaning: "legacy learning marker, inert for governance"},
 	{Key: LabelInstanceTemplateHash, Legacy: LegacyLabelInstanceTemplateHash, Meaning: "workload template hash the learned document was recorded for"},
 	{Key: LabelHost, Legacy: LegacyLabelHost, Meaning: "host document marker read by storage cleanup"},
@@ -193,6 +249,11 @@ var Labels = []Entry{
 	{Key: LabelNodeGroup, Legacy: LegacyLabelNodeGroup, Meaning: "node group a host document template applies to"},
 	{Key: LabelCanary, Legacy: LegacyLabelCanary, Meaning: "canary workload marker of the standing live check"},
 	{Key: LabelUserDefinedNetwork, Legacy: LegacyLabelUserDefinedNetwork, Meaning: "legacy binding label of a network document, retired with the merged document"},
+	{Key: LabelSuggestedFrom, Legacy: LegacyLabelSuggestedFrom, Meaning: "learned document a proposal was computed from"},
+	{Key: LabelDeltaOf, Legacy: LegacyLabelDeltaOf, Meaning: "authored document or bundle a proposed fragment adds to"},
+	{Key: LabelPeerNamespace, Legacy: LegacyLabelPeerNamespace, Meaning: "namespace of the client workload a proposed ingress fragment admits"},
+	{Key: LabelPeerWorkload, Legacy: LegacyLabelPeerWorkload, Meaning: "client workload a proposed ingress fragment admits"},
+	{Key: LabelSuggestBundle, Legacy: LegacyLabelSuggestBundle, Meaning: "bundle a pod asks its proposals to be made for; read from the pod as a label, then as an annotation"},
 }
 
 var Annotations = []Entry{
@@ -234,6 +295,18 @@ var Annotations = []Entry{
 	{Key: AnnotationTimestamp, Legacy: LegacyAnnotationTimestamp, Meaning: "signing time of a fragment"},
 	{Key: AnnotationWorkloadAPIGroup, Legacy: LegacyAnnotationWorkloadAPIGroup},
 	{Key: AnnotationWorkloadAPIVersion, Legacy: LegacyAnnotationWorkloadAPIVersion},
+	{Key: AnnotationTimeline, Legacy: LegacyAnnotationTimeline, Meaning: "governance transitions of the recorded container, written by the agent and kept by storage across updates"},
+	{Key: AnnotationSuggestRequest, Legacy: LegacyAnnotationSuggestRequest, Meaning: "request identifier a pod asks a proposal with, carried onto the proposal"},
+	{Key: AnnotationSuggestKind, Legacy: LegacyAnnotationSuggestKind, Values: []string{"full", "delta"}, Meaning: "kind of proposal a pod asks for"},
+	{Key: AnnotationSuggestionSHA256, Legacy: LegacyAnnotationSuggestionSHA256, Meaning: "digest of the proposed content, compared before a proposal is rewritten"},
+	{Key: AnnotationSuggestionSourceRV, Legacy: LegacyAnnotationSuggestionSourceRV, Meaning: "resource version of the learned document a proposal was computed from"},
+	{Key: AnnotationSuggestionVersion, Legacy: LegacyAnnotationSuggestionVersion, Meaning: "counter raised each time the content of a proposal changes"},
+	{Key: AnnotationCreatedBy, Legacy: LegacyAnnotationCreatedBy, Meaning: "component that wrote a proposal"},
+	{Key: AnnotationExpiresAt, Legacy: LegacyAnnotationExpiresAt, Meaning: "time after which an unaccepted proposal is withdrawn, RFC 3339"},
+	{Key: AnnotationEvidence, Legacy: LegacyAnnotationEvidence, Values: []string{"client", "shadow", "both"}, Meaning: "where the traffic behind a proposed ingress fragment was seen, at the client, in the learned document of the target, or both"},
+	{Key: AnnotationPeerSelf, Legacy: LegacyAnnotationPeerSelf, Meaning: "the client of a proposed ingress fragment is the workload itself"},
+	{Key: AnnotationDeltaBaseOnly, Legacy: LegacyAnnotationDeltaBaseOnly, Meaning: "sections in which the learned document holds values the governing one lacks and that a proposed overlay fragment leaves to the base fragment, comma separated"},
+	{Key: AnnotationRekorBundle, Legacy: LegacyAnnotationRekorBundle, Meaning: "transparency log bundle of a signed fragment"},
 }
 
 var ImageLabels = []Entry{

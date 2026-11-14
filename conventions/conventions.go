@@ -10,11 +10,15 @@ type Entry struct {
 }
 
 type Kind struct {
-	Name          string
-	Group         string
-	LegacyName    string
-	LegacyGroup   string
-	SubjectValues []string
+	Name           string
+	Group          string
+	Version        string
+	Resource       string
+	LegacyName     string
+	LegacyGroup    string
+	LegacyVersion  string
+	LegacyResource string
+	SubjectValues  []string
 }
 
 type Retired struct {
