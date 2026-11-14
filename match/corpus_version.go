@@ -1,0 +1,3 @@
+package match
+
+const CorpusVersion = "fe8c3d394ffdb8b440924d294a234965eaa458a32db5ad9be3b6d25a286898e4"
