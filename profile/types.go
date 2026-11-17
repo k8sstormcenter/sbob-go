@@ -284,6 +284,7 @@ type ExecCall struct {
 	Args         []string                   `json:"args,omitempty"`
 	Envs         []string                   `json:"envs,omitempty"`
 	ArgsRequired bool                       `json:"argsRequired,omitempty"`
+	ArgsRegex    string                     `json:"argsRegex,omitempty"`
 	Extra        map[string]json.RawMessage `json:"-"`
 	seen         map[string]bool
 }
@@ -298,6 +299,7 @@ func (v *ExecCall) UnmarshalJSON(data []byte) error {
 	readField(r, "args", &n.Args)
 	readField(r, "envs", &n.Envs)
 	readField(r, "argsRequired", &n.ArgsRequired)
+	readField(r, "argsRegex", &n.ArgsRegex)
 	n.seen, n.Extra, err = r.finish()
 	if err != nil {
 		return err
@@ -312,6 +314,7 @@ func (v ExecCall) MarshalJSON() ([]byte, error) {
 	writeField(w, "args", v.Args, v.Args == nil)
 	writeField(w, "envs", v.Envs, v.Envs == nil)
 	writeField(w, "argsRequired", v.ArgsRequired, !v.ArgsRequired)
+	writeField(w, "argsRegex", v.ArgsRegex, v.ArgsRegex == "")
 	return w.finish()
 }
 

@@ -48,8 +48,9 @@ type Sets struct {
 	IngressDomains   Field
 	IngressAddresses Field
 
-	ExecArgs  map[string][][]string
-	OpenFlags map[string][]string
+	ExecArgs    map[string][][]string
+	ExecRegexps map[string][]*match.ExecRegexp
+	OpenFlags   map[string][]string
 
 	EgressPeers  []Peer
 	IngressPeers []Peer
@@ -110,6 +111,7 @@ func projectSets(capabilities []string, execs []profile.ExecCall, opens []profil
 	}
 	s.Execs = field(execPaths, true)
 	s.ExecArgs = execArgs(execs)
+	s.ExecRegexps = execRegexps(execs)
 
 	endpointPaths := make([]string, len(endpoints))
 	for i := range endpoints {
@@ -206,9 +208,27 @@ func execArgs(execs []profile.ExecCall) map[string][][]string {
 	m := make(map[string][][]string, len(execs))
 	for i := range execs {
 		e := &execs[i]
+		if e.ArgsRegex != "" {
+			continue
+		}
 		args := make([]string, len(e.Args))
 		copy(args, e.Args)
 		m[e.Path] = append(m[e.Path], args)
+	}
+	return m
+}
+
+func execRegexps(execs []profile.ExecCall) map[string][]*match.ExecRegexp {
+	var m map[string][]*match.ExecRegexp
+	for i := range execs {
+		e := &execs[i]
+		if e.ArgsRegex == "" {
+			continue
+		}
+		if m == nil {
+			m = make(map[string][]*match.ExecRegexp)
+		}
+		m[e.Path] = append(m[e.Path], match.ExecRegexpOf(e.ArgsRegex))
 	}
 	return m
 }
