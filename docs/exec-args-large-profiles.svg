@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 322" width="760" height="322" role="img" aria-label="Nanoseconds per exec event on three large runner profiles, grammar versus expression">
+<style>
+.bg{fill:#ffffff;stroke:#d9dee6}
+.t{font:600 15px system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;fill:#1b2230}
+.s{font:12px system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;fill:#5b6577}
+.n{font:600 13px system-ui,-apple-system,"Segoe UI",Helvetica,Arial,sans-serif;fill:#1b2230}
+.m{font:11.5px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#5b6577}
+.v{font:12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#1b2230}
+.k{font:11px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#5b6577}
+.g{fill:#2f5f8f}.r{fill:#c26a12}.grid{stroke:#e3e7ee;stroke-width:1}
+.fast{font:600 12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#2f7d4f}
+.slow{font:600 12px ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;fill:#b3471d}
+@media (prefers-color-scheme:dark){
+.bg{fill:#171c25;stroke:#2a3241}.t,.n,.v{fill:#e3e8f0}.s,.m,.k{fill:#96a1b3}
+.g{fill:#79a6d6}.r{fill:#f0a046}.grid{stroke:#2a3241}.fast{fill:#63c48a}.slow{fill:#f07b4f}}
+</style>
+<rect class="bg" x="0.5" y="0.5" width="759" height="321" rx="8"/>
+<text class="t" x="20" y="28">Exec check cost on large profiles, every entry as grammar vs as expression</text>
+<text class="s" x="20" y="48">ns per event, median of 3, lower is better</text>
+<rect class="g" x="510" y="38" width="12" height="12" rx="2"/><text class="s" x="528" y="48">grammar (args)</text>
+<rect class="r" x="630" y="38" width="12" height="12" rx="2"/><text class="s" x="648" y="48">argsRegex</text>
+<line class="grid" x1="248.0" y1="62" x2="248.0" y2="292"/>
+<text class="k" x="248.0" y="308" text-anchor="middle">0 µs</text>
+<line class="grid" x1="366.3" y1="62" x2="366.3" y2="292"/>
+<text class="k" x="366.3" y="308" text-anchor="middle">4 µs</text>
+<line class="grid" x1="484.6" y1="62" x2="484.6" y2="292"/>
+<text class="k" x="484.6" y="308" text-anchor="middle">8 µs</text>
+<line class="grid" x1="602.9" y1="62" x2="602.9" y2="292"/>
+<text class="k" x="602.9" y="308" text-anchor="middle">12 µs</text>
+<text class="n" x="236" y="84" text-anchor="end">Runner profile A</text>
+<text class="m" x="236" y="101" text-anchor="end">3,040 entries · 35,490 events</text>
+<text class="m" x="236" y="118" text-anchor="end">allocs/pass 1,319,329 → 1</text>
+<rect class="g" x="248" y="74" width="307.5" height="18" rx="2"/>
+<text class="v" x="561.5" y="87">10.4 µs</text>
+<rect class="r" x="248" y="98" width="240.4" height="18" rx="2"/>
+<text class="v" x="494.4" y="111">8.13 µs <tspan class="fast">0.78×</tspan></text>
+<text class="n" x="236" y="158" text-anchor="end">Runner profile B</text>
+<text class="m" x="236" y="175" text-anchor="end">2,967 entries · 34,624 events</text>
+<text class="m" x="236" y="192" text-anchor="end">allocs/pass 1,408,233 → 1</text>
+<rect class="g" x="248" y="148" width="364.5" height="18" rx="2"/>
+<text class="v" x="618.5" y="161">12.3 µs</text>
+<rect class="r" x="248" y="172" width="244.6" height="18" rx="2"/>
+<text class="v" x="498.6" y="185">8.27 µs <tspan class="fast">0.67×</tspan></text>
+<text class="n" x="236" y="232" text-anchor="end">Runner profile C</text>
+<text class="m" x="236" y="249" text-anchor="end">1,806 entries · 21,140 events</text>
+<text class="m" x="236" y="266" text-anchor="end">allocs/pass 534,359 → 0</text>
+<rect class="g" x="248" y="222" width="112.3" height="18" rx="2"/>
+<text class="v" x="366.3" y="235">3.80 µs</text>
+<rect class="r" x="248" y="246" width="152.0" height="18" rx="2"/>
+<text class="v" x="406.0" y="259">5.14 µs <tspan class="slow">1.35×</tspan></text>
+</svg>
