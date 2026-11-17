@@ -1,6 +1,8 @@
 # sbob-go
 
 The reference implementation of the Software Bill of Behaviour matching grammar and collapse rules, as a Go module with no dependencies beyond the standard library.
+Current goal: kubescape-node-agent produces profiles, cli uses this library to generalize them into sbobs -> transpile into a few known other runtime-stacks so they can read sbobs, too. 
+Not stable, very much WIP
 
 | package | contents |
 |---|---|
