@@ -301,14 +301,14 @@ func (l *lists) add(capabilities []string, execs []profile.ExecCall, opens []pro
 		l.syscalls[s] = true
 	}
 	for _, e := range execs {
-		n := profile.ExecCall{Path: e.Path, ArgsRequired: e.ArgsRequired, Extra: cloneExtra(e.Extra)}
+		n := profile.ExecCall{Path: e.Path, ArgsRequired: e.ArgsRequired, ArgsRegex: e.ArgsRegex, Extra: cloneExtra(e.Extra)}
 		if len(e.Args) > 0 {
 			n.Args = cloneStrings(e.Args)
 		}
 		if len(e.Envs) > 0 {
 			n.Envs = cloneStrings(e.Envs)
 		}
-		fresh, err := l.once("x", execKey{n.Path, n.Args, n.Envs, n.ArgsRequired, n.Extra})
+		fresh, err := l.once("x", execKey{n.Path, n.Args, n.Envs, n.ArgsRequired, n.ArgsRegex, n.Extra})
 		if err != nil {
 			return err
 		}
@@ -355,6 +355,7 @@ type execKey struct {
 	Args         []string                   `json:"args,omitempty"`
 	Envs         []string                   `json:"envs,omitempty"`
 	ArgsRequired bool                       `json:"argsRequired,omitempty"`
+	ArgsRegex    string                     `json:"argsRegex,omitempty"`
 	Extra        map[string]json.RawMessage `json:"extra,omitempty"`
 }
 

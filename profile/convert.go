@@ -148,6 +148,7 @@ func validateContainers(errs []error, field string, containers []Container) []er
 func validateSections(errs []error, field string, execs []ExecCall, opens []OpenCall, ingress, egress []NetworkNeighbor, subtract *Subtract) []error {
 	for i := range execs {
 		errs = validatePath(errs, fmt.Sprintf("%s.execs[%d].path", field, i), execs[i].Path)
+		errs = validateArgsRegex(errs, fmt.Sprintf("%s.execs[%d].argsRegex", field, i), &execs[i])
 	}
 	for i := range opens {
 		errs = validatePath(errs, fmt.Sprintf("%s.opens[%d].path", field, i), opens[i].Path)
@@ -156,6 +157,19 @@ func validateSections(errs []error, field string, execs []ExecCall, opens []Open
 	errs = validateNeighbors(errs, field+".egress", egress)
 	if subtract != nil {
 		errs = validateSections(errs, field+".subtract", subtract.Execs, subtract.Opens, subtract.Ingress, subtract.Egress, nil)
+	}
+	return errs
+}
+
+func validateArgsRegex(errs []error, field string, e *ExecCall) []error {
+	if e.ArgsRegex == "" {
+		return errs
+	}
+	if len(e.Args) > 0 {
+		return append(errs, &Invalid{Field: field, Reason: match.ErrExecRegexpWithArgs.Error()})
+	}
+	if _, err := match.CompileExecRegexp(e.ArgsRegex); err != nil {
+		return append(errs, &Invalid{Field: field, Reason: err.Error()})
 	}
 	return errs
 }

@@ -24,7 +24,7 @@ func tokensKey(tokens []string) string {
 // execKey identifies an ExecCalls entry exactly (path, argv, envs and
 // ArgsRequired), injectively.
 func execKey(e Exec) string {
-	return tokensKey([]string{e.Path, tokensKey(e.Args), tokensKey(e.Envs), strconv.FormatBool(e.ArgsRequired)})
+	return tokensKey([]string{e.Path, tokensKey(e.Args), tokensKey(e.Envs), strconv.FormatBool(e.ArgsRequired), e.ArgsRegex})
 }
 
 // compareExecCalls is a total order: path, argv, ArgsRequired (false first),
@@ -41,6 +41,9 @@ func compareExecCalls(a, b Exec) int {
 			return -1
 		}
 		return 1
+	}
+	if c := strings.Compare(a.ArgsRegex, b.ArgsRegex); c != 0 {
+		return c
 	}
 	return slices.Compare(a.Envs, b.Envs)
 }
@@ -136,7 +139,7 @@ func AnalyzeExecs(execs []Exec, analyzer *ExecAnalyzer) []Exec {
 	byPath := make(map[string][]Exec)
 	var paths []string
 	for _, e := range execs {
-		if e.ArgsRequired || len(e.Args) == 0 {
+		if e.ArgsRegex != "" || e.ArgsRequired || len(e.Args) == 0 {
 			if seenPassthrough.add(execKey(e)) {
 				out = append(out, e)
 			}

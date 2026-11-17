@@ -6,9 +6,10 @@ import (
 )
 
 type Entry struct {
-	Path string
-	Args []string
-	Name string
+	Path      string
+	Args      []string
+	Name      string
+	ArgsRegex *ExecRegexp
 }
 
 const (
@@ -20,7 +21,34 @@ const (
 
 func ExecVectorMatches(entries []Entry, rt Entry) bool {
 	for _, e := range entries {
-		if CompareDynamic(e.Path, rt.Path) && CompareExecArgs(e.Args, rt.Args) {
+		if !CompareDynamic(e.Path, rt.Path) {
+			continue
+		}
+		if e.ArgsRegex != nil {
+			if e.ArgsRegex.MatchArgs(rt.Args) {
+				return true
+			}
+			continue
+		}
+		if CompareExecArgs(e.Args, rt.Args) {
+			return true
+		}
+	}
+	return false
+}
+
+func ExecVectorDenied(entries []Entry, rt Entry) bool {
+	for _, e := range entries {
+		if !CompareDynamic(e.Path, rt.Path) {
+			continue
+		}
+		if e.ArgsRegex != nil {
+			if !e.ArgsRegex.Valid() || e.ArgsRegex.MatchArgs(rt.Args) {
+				return true
+			}
+			continue
+		}
+		if CompareExecArgs(e.Args, rt.Args) {
 			return true
 		}
 	}
@@ -42,7 +70,7 @@ func ExecPathDenied(entries []Entry, rt Entry) bool {
 		invoked = rt.Args[0]
 	}
 	for _, e := range entries {
-		if !CompareDynamic(e.Path, rt.Path) {
+		if e.ArgsRegex != nil || !CompareDynamic(e.Path, rt.Path) {
 			continue
 		}
 		if len(e.Args) == 0 {
@@ -76,7 +104,7 @@ func Allowed(surface string, allow, subtract []Entry, rt Entry) (bool, error) {
 	var match, deny func([]Entry, Entry) bool
 	switch surface {
 	case SurfaceExec:
-		match, deny = ExecVectorMatches, ExecVectorMatches
+		match, deny = ExecVectorMatches, ExecVectorDenied
 	case SurfaceExecPath:
 		match, deny = ExecPathMatches, ExecPathDenied
 	case SurfaceOpen:

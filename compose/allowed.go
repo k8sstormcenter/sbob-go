@@ -31,6 +31,16 @@ func entries(s *Sets, surface string) []match.Entry {
 				out = append(out, match.Entry{Path: path, Args: args})
 			}
 		}
+		regexPaths := make([]string, 0, len(s.ExecRegexps))
+		for path := range s.ExecRegexps {
+			regexPaths = append(regexPaths, path)
+		}
+		sort.Strings(regexPaths)
+		for _, path := range regexPaths {
+			for _, x := range s.ExecRegexps[path] {
+				out = append(out, match.Entry{Path: path, ArgsRegex: x})
+			}
+		}
 	case match.SurfaceOpen:
 		for _, path := range fieldEntries(s.Opens) {
 			out = append(out, match.Entry{Path: path})

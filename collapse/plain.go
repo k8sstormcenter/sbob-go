@@ -7,6 +7,7 @@ type Exec struct {
 	Args         []string
 	Envs         []string
 	ArgsRequired bool
+	ArgsRegex    string
 }
 
 type Open struct {
