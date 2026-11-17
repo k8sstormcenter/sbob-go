@@ -12,6 +12,16 @@ The specification this module implements, its conventions and schemas are mainta
 
 `cmd/wasmcheck` exists only so the module can be compiled with TinyGo for WebAssembly in continuous integration.
 
+## Performance
+
+An exec entry constrains its arguments either with the argument grammar (`args`) or with a POSIX regular expression over the space-joined argument vector (`argsRegex`). Expressions are compiled once per profile and a check allocates nothing; a literal prefix or a fully literal expression is decided without running the regular-expression engine.
+
+![Nanoseconds per exec event on three large runner profiles, grammar versus argsRegex](docs/exec-args-large-profiles.svg)
+
+The three largest profiles of a recorded set, container profiles of self-hosted CI runners with 1,806 to 3,040 exec entries. Every grammar entry was rewritten as an expression, and the same generated events, matching and near-miss argument lists for each entry, ran through both forms. On the two largest profiles the expression form is faster (0.67× and 0.78×); on the third it costs 1.35×. The grammar allocates up to 1.4 million times per pass over a profile, the expressions at most once. Both forms reach the same verdict on 91,248 of 91,254 events; the six others carry a space inside a single argument, which the joined subject cannot tell apart from two arguments.
+
+Measured with v0.6.0 and Go 1.24 on an x86-64 Xeon at 2.8 GHz, one pinned core, median of three runs.
+
 ## Versions
 
 The module version is semantic. A change in matching or collapse semantics is a minor version at least; images built against this module carry the module version as a label.
