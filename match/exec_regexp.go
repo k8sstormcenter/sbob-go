@@ -35,12 +35,12 @@ func CompileExecRegexp(expr string) (*ExecRegexp, error) {
 		return nil, err
 	}
 	anchored := &syntax.Regexp{Op: syntax.OpConcat, Sub: []*syntax.Regexp{{Op: syntax.OpBeginText}, parsed, {Op: syntax.OpEndText}}}
-	re, err := regexp.Compile(anchored.String())
+	re, err := regexp.Compile(perlSyntax(anchored))
 	if err != nil {
 		return nil, err
 	}
 	x := &ExecRegexp{expr: expr, re: re}
-	if lit, err := regexp.Compile(parsed.String()); err == nil {
+	if lit, err := regexp.Compile(perlSyntax(parsed)); err == nil {
 		x.prefix, x.complete = lit.LiteralPrefix()
 	}
 	return x, nil
