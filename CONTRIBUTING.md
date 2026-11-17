@@ -1,28 +1,32 @@
 # Contributing
 
-## Status
+Thank you for your interest.
 
-This module is work in progress. It is a prototype, built to work out the design of a portable behaviour document and the one matcher that gives it meaning, not a finished product. The grammar, the API and the package layout will still change; a change in matching semantics is a minor version at least, and until 1.0 there is no compatibility promise beyond that.
+## Where this stands
 
-## Comments wanted
+This library is a prototype and a work in progress. It belongs to a proposal, the Software Bill of Behaviour, that tries to give users the same experience of runtime profiling whichever tool they use. Nothing here is finished or stable, and we do not yet know whether the approach is the right one. The grammar, the API and the package layout will change, and until 1.0 there is no compatibility promise.
 
-People who work on the eBPF and runtime-security side are explicitly invited to comment on issues: Falco, Tetragon, Inspektor Gadget, Kubescape, Tracee, Kubewarden, or any other engine that observes or enforces process, file and network behaviour. The questions where outside knowledge helps most:
+## Your comments are the most valuable contribution
 
-- which patterns an in-kernel filter can carry exactly, and which have to be judged in user space;
-- which events keep argument boundaries, resolved paths and peer identities, and on which kernels they can be lost;
-- how a rule should be carried into an engine that has no profile functions, and when it is better to report it as not portable than to approximate it;
-- whether a document's meaning is clear from the specification alone, without reading this code.
+We would be very grateful for comments from people who build eBPF and runtime-security tools: Falco, Tetragon, Inspektor Gadget, Kubescape, Tracee, Kubewarden, or any other project that observes or enforces what processes, files and network connections do. You know your tools far better than we do, and we would much rather adapt the proposal than ask anyone to change their design.
 
-A short comment on an issue, or a new issue with one concrete case, is the most useful contribution at this stage.
+Questions where your experience would help us most:
+
+- Which patterns can an in-kernel filter carry exactly, and which would have to be checked in user space?
+- Which events keep argument boundaries, resolved paths and peer identities, and on which kernels can they be lost?
+- How could expected behaviour be handed to a tool that has no notion of a profile, and when is it better to say a rule cannot be carried than to approximate it?
+- Is anything here unnecessary, or in conflict with how your project already works?
+
+A short comment on an issue, or a new issue with one concrete case, already helps a great deal.
 
 ## Opening an issue
 
-Describe one case: the profile entry or pattern, the event (path, argument vector, address), the verdict you expected and the verdict you got or expect from another engine. The engine and kernel version help when the question is about what an event carries.
+It helps most if an issue describes one case: the profile entry or pattern, the event (path, argument list, address), and what you expected to happen. When the question is about what an event carries, the tool and kernel version are useful too.
 
-For a security problem, do not open a public issue; use the private vulnerability reporting of this repository.
+For a security problem, please do not open a public issue; use the private vulnerability reporting of this repository instead.
 
 ## Changes
 
-Open an issue before a pull request, so the design question is settled first. A pull request keeps the module on the Go standard library only and compiling with TinyGo; continuous integration checks both. Conformance tests live in a separate suite; the maintainers run it for every change and publish a summary with each release.
+Please open an issue before a pull request, so we can talk about the idea first. Changes keep the library on the Go standard library only and compiling with TinyGo; continuous integration checks both.
 
 Contributions are accepted under the Apache License 2.0, the license of this repository.
