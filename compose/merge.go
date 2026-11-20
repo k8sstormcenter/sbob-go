@@ -244,16 +244,25 @@ type neighbors struct {
 	byID  map[string]profile.NetworkNeighbor
 }
 
-func (n *neighbors) add(list []profile.NetworkNeighbor) {
+func (n *neighbors) add(list []profile.NetworkNeighbor) error {
 	for _, e := range list {
-		if _, ok := n.byID[e.Identifier]; !ok {
+		next := cloneNeighbor(e)
+		prev, ok := n.byID[e.Identifier]
+		if !ok {
 			if n.byID == nil {
 				n.byID = map[string]profile.NetworkNeighbor{}
 			}
 			n.order = append(n.order, e.Identifier)
+		} else {
+			merged, err := profile.MergeExtensions(prev.Extensions, next.Extensions)
+			if err != nil {
+				return fmt.Errorf("network entry %q: %w", e.Identifier, err)
+			}
+			next.Extensions = merged
 		}
-		n.byID[e.Identifier] = cloneNeighbor(e)
+		n.byID[e.Identifier] = next
 	}
+	return nil
 }
 
 func (n *neighbors) list() []profile.NetworkNeighbor {
@@ -270,6 +279,7 @@ type lists struct {
 	execs        []profile.ExecCall
 	opens        []profile.OpenCall
 	endpoints    []profile.Endpoint
+	endpointAt   map[string]int
 	seen         map[string]bool
 	ingress      neighbors
 	egress       neighbors
@@ -277,7 +287,7 @@ type lists struct {
 }
 
 func newLists() *lists {
-	return &lists{capabilities: map[string]bool{}, syscalls: map[string]bool{}, seen: map[string]bool{}}
+	return &lists{capabilities: map[string]bool{}, syscalls: map[string]bool{}, seen: map[string]bool{}, endpointAt: map[string]int{}}
 }
 
 func (l *lists) once(kind string, key any) (bool, error) {
@@ -327,20 +337,34 @@ func (l *lists) add(capabilities []string, execs []profile.ExecCall, opens []pro
 		}
 	}
 	for _, e := range endpoints {
-		n := profile.Endpoint{Endpoint: e.Endpoint, Internal: e.Internal, Direction: e.Direction, Headers: cloneRaw(e.Headers), Extra: cloneExtra(e.Extra)}
+		n := profile.Endpoint{Endpoint: e.Endpoint, Internal: e.Internal, Direction: e.Direction, Headers: cloneRaw(e.Headers), Extensions: cloneRaw(e.Extensions), Extra: cloneExtra(e.Extra)}
 		if len(e.Methods) > 0 {
 			n.Methods = cloneStrings(e.Methods)
 		}
-		fresh, err := l.once("e", endpointKey{n.Endpoint, n.Methods, n.Internal, n.Direction, n.Headers, n.Extra})
+		b, err := json.Marshal(endpointKey{n.Endpoint, n.Methods, n.Internal, n.Direction, n.Headers, n.Extra})
 		if err != nil {
 			return err
 		}
-		if fresh {
-			l.endpoints = append(l.endpoints, n)
+		if l.endpointAt == nil {
+			l.endpointAt = map[string]int{}
 		}
+		if i, ok := l.endpointAt[string(b)]; ok {
+			merged, err := profile.MergeExtensions(l.endpoints[i].Extensions, n.Extensions)
+			if err != nil {
+				return fmt.Errorf("endpoint %q %v %s: %w", n.Endpoint, n.Methods, n.Direction, err)
+			}
+			l.endpoints[i].Extensions = merged
+			continue
+		}
+		l.endpointAt[string(b)] = len(l.endpoints)
+		l.endpoints = append(l.endpoints, n)
 	}
-	l.ingress.add(ingress)
-	l.egress.add(egress)
+	if err := l.ingress.add(ingress); err != nil {
+		return err
+	}
+	if err := l.egress.add(egress); err != nil {
+		return err
+	}
 	for k, v := range extra {
 		if l.extra == nil {
 			l.extra = map[string]json.RawMessage{}

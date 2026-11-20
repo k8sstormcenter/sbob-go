@@ -21,11 +21,12 @@ const (
 )
 
 type Endpoint struct {
-	Endpoint  string
-	Methods   []string
-	Internal  bool
-	Direction string
-	Headers   []byte
+	Endpoint   string
+	Methods    []string
+	Internal   bool
+	Direction  string
+	Headers    []byte
+	Extensions []byte
 }
 
 func (e *Endpoint) GetHeaders() (map[string][]string, error) {

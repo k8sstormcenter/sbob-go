@@ -349,13 +349,14 @@ func (v OpenCall) MarshalJSON() ([]byte, error) {
 }
 
 type Endpoint struct {
-	Endpoint  string                     `json:"endpoint,omitempty"`
-	Methods   []string                   `json:"methods,omitempty"`
-	Internal  bool                       `json:"internal,omitempty"`
-	Direction string                     `json:"direction,omitempty"`
-	Headers   json.RawMessage            `json:"headers,omitempty"`
-	Extra     map[string]json.RawMessage `json:"-"`
-	seen      map[string]bool
+	Endpoint   string                     `json:"endpoint,omitempty"`
+	Methods    []string                   `json:"methods,omitempty"`
+	Internal   bool                       `json:"internal,omitempty"`
+	Direction  string                     `json:"direction,omitempty"`
+	Headers    json.RawMessage            `json:"headers,omitempty"`
+	Extensions json.RawMessage            `json:"extensions,omitempty"`
+	Extra      map[string]json.RawMessage `json:"-"`
+	seen       map[string]bool
 }
 
 func (v *Endpoint) UnmarshalJSON(data []byte) error {
@@ -369,6 +370,7 @@ func (v *Endpoint) UnmarshalJSON(data []byte) error {
 	readField(r, "internal", &n.Internal)
 	readField(r, "direction", &n.Direction)
 	readRaw(r, "headers", &n.Headers)
+	readRaw(r, "extensions", &n.Extensions)
 	n.seen, n.Extra, err = r.finish()
 	if err != nil {
 		return err
@@ -384,6 +386,7 @@ func (v Endpoint) MarshalJSON() ([]byte, error) {
 	writeField(w, "internal", v.Internal, !v.Internal)
 	writeField(w, "direction", v.Direction, v.Direction == "")
 	writeRaw(w, "headers", v.Headers, "{}")
+	writeRaw(w, "extensions", v.Extensions, "{}")
 	return w.finish()
 }
 
@@ -431,6 +434,7 @@ type NetworkNeighbor struct {
 	ServiceRefName      string                     `json:"serviceRefName,omitempty"`
 	ServiceSelector     *LabelSelector             `json:"serviceSelector,omitempty"`
 	Entity              string                     `json:"entity,omitempty"`
+	Extensions          json.RawMessage            `json:"extensions,omitempty"`
 	Extra               map[string]json.RawMessage `json:"-"`
 	seen                map[string]bool
 }
@@ -454,6 +458,7 @@ func (v *NetworkNeighbor) UnmarshalJSON(data []byte) error {
 	readField(r, "serviceRefName", &n.ServiceRefName)
 	readField(r, "serviceSelector", &n.ServiceSelector)
 	readField(r, "entity", &n.Entity)
+	readRaw(r, "extensions", &n.Extensions)
 	n.seen, n.Extra, err = r.finish()
 	if err != nil {
 		return err
@@ -477,6 +482,7 @@ func (v NetworkNeighbor) MarshalJSON() ([]byte, error) {
 	writeField(w, "serviceRefName", v.ServiceRefName, v.ServiceRefName == "")
 	writeField(w, "serviceSelector", v.ServiceSelector, v.ServiceSelector == nil)
 	writeField(w, "entity", v.Entity, v.Entity == "")
+	writeRaw(w, "extensions", v.Extensions, "{}")
 	return w.finish()
 }
 

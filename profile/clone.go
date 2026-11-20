@@ -142,6 +142,7 @@ func (v OpenCall) Clone() OpenCall {
 func (v Endpoint) Clone() Endpoint {
 	v.Methods = cloneValues(v.Methods)
 	v.Headers = cloneRaw(v.Headers)
+	v.Extensions = cloneRaw(v.Extensions)
 	v.Extra = cloneExtra(v.Extra)
 	return v
 }
@@ -170,6 +171,7 @@ func (v NetworkNeighbor) Clone() NetworkNeighbor {
 	v.NamespaceSelector = v.NamespaceSelector.Clone()
 	v.IPAddresses = cloneValues(v.IPAddresses)
 	v.ServiceSelector = v.ServiceSelector.Clone()
+	v.Extensions = cloneRaw(v.Extensions)
 	v.Extra = cloneExtra(v.Extra)
 	return v
 }

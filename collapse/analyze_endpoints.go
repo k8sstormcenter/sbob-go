@@ -1,6 +1,7 @@
 package collapse
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"net/netip"
@@ -63,11 +64,12 @@ func ProcessEndpoint(endpoint *Endpoint, analyzer *PathAnalyzer, newEndpoints []
 		}
 
 		dynamicEndpoint := Endpoint{
-			Endpoint:  analyzeURL,
-			Methods:   endpoint.Methods,
-			Internal:  endpoint.Internal,
-			Direction: endpoint.Direction,
-			Headers:   endpoint.Headers,
+			Endpoint:   analyzeURL,
+			Methods:    endpoint.Methods,
+			Internal:   endpoint.Internal,
+			Direction:  endpoint.Direction,
+			Headers:    endpoint.Headers,
+			Extensions: endpoint.Extensions,
 		}
 
 		return &dynamicEndpoint, nil
@@ -209,7 +211,8 @@ func MergeDuplicateEndpoints(endpoints []*Endpoint) []*Endpoint {
 			for k, e := range seen {
 				ePort, ePath := SplitEndpointPortAndPath(e.Endpoint)
 				if isWildcardPort(ePort) || ePath != pathPart ||
-					e.Direction != endpoint.Direction || e.Internal != endpoint.Internal {
+					e.Direction != endpoint.Direction || e.Internal != endpoint.Internal ||
+					extensionsKey(e.Extensions) != extensionsKey(endpoint.Extensions) {
 					continue
 				}
 				endpoint.Methods = MergeStrings(endpoint.Methods, e.Methods)
@@ -228,7 +231,7 @@ func MergeDuplicateEndpoints(endpoints []*Endpoint) []*Endpoint {
 		// the lookup hits the same map slot the wildcard was inserted under.
 		// Both formats derive from buildEndpointKey to remove the
 		// duplication risk.
-		wildcardKey := buildEndpointKey(":0"+pathPart, endpoint.Direction, endpoint.Internal)
+		wildcardKey := buildEndpointKey(":0"+pathPart, endpoint.Direction, endpoint.Internal, endpoint.Extensions)
 		if existing, found := seen[wildcardKey]; found {
 			existing.Methods = MergeStrings(existing.Methods, endpoint.Methods)
 			_ = mergeHeaders(existing, endpoint)
@@ -267,7 +270,7 @@ func removeEndpoint(s []*Endpoint, target *Endpoint) []*Endpoint {
 // MergeDuplicateEndpoints route through buildEndpointKey so the format can't
 // drift between the two callsites.
 func getEndpointKey(endpoint *Endpoint) string {
-	return buildEndpointKey(endpoint.Endpoint, endpoint.Direction, endpoint.Internal)
+	return buildEndpointKey(endpoint.Endpoint, endpoint.Direction, endpoint.Internal, endpoint.Extensions)
 }
 
 // buildEndpointKey is the single source of truth for the endpoint-lookup
@@ -275,8 +278,22 @@ func getEndpointKey(endpoint *Endpoint) string {
 // two callsites is what allowed the two formats to drift in the past
 // (e.g. one with %s|%s|%t and another with %s|%s|%v). Keep this helper
 // the only producer of the key.
-func buildEndpointKey(endpoint string, direction string, internal bool) string {
-	return fmt.Sprintf("%s|%s|%t", endpoint, direction, internal)
+func buildEndpointKey(endpoint string, direction string, internal bool, extensions []byte) string {
+	return fmt.Sprintf("%s|%s|%t|%s", endpoint, direction, internal, extensionsKey(extensions))
+}
+
+func extensionsKey(extensions []byte) string {
+	if len(extensions) == 0 {
+		return ""
+	}
+	var buf bytes.Buffer
+	if err := json.Compact(&buf, extensions); err != nil {
+		return string(extensions)
+	}
+	if buf.String() == "{}" || buf.String() == "null" {
+		return ""
+	}
+	return buf.String()
 }
 
 func mergeHeaders(existing, new *Endpoint) error {
