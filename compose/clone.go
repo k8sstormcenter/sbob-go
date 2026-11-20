@@ -67,6 +67,7 @@ func cloneSelector(s *profile.LabelSelector) *profile.LabelSelector {
 }
 
 func cloneNeighbor(n profile.NetworkNeighbor) profile.NetworkNeighbor {
+	n.Extensions = cloneRaw(n.Extensions)
 	n.DNSNames = cloneStrings(n.DNSNames)
 	n.IPAddresses = cloneStrings(n.IPAddresses)
 	if n.Ports != nil {
