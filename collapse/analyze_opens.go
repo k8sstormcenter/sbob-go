@@ -127,15 +127,34 @@ func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 		}
 	}
 
-	for _, narrow := range patternOrder {
+	patternSegs := make([][]string, len(patternOrder))
+	byPrefix := make(map[segPrefix][]int, len(patternOrder))
+	for r, pi := range patternOrder {
+		segs := match.SplitPath(opens[pi].Path)
+		patternSegs[r] = segs
+		k := literalPrefixLen(segs)
+		key := segPrefix{k, strings.Join(segs[:k], "/")}
+		byPrefix[key] = append(byPrefix[key], r)
+	}
+	var candidates []int
+	for r, narrow := range patternOrder {
 		if !keep[narrow] {
 			continue
 		}
-		for _, broad := range patternOrder {
-			if broad == narrow || !keep[broad] || rank[broad] <= rank[narrow] {
+		segs := patternSegs[r]
+		candidates = candidates[:0]
+		for j := 0; j <= literalPrefixLen(segs); j++ {
+			bucket := byPrefix[segPrefix{j, strings.Join(segs[:j], "/")}]
+			from, _ := slices.BinarySearch(bucket, r+1)
+			candidates = append(candidates, bucket[from:]...)
+		}
+		slices.Sort(candidates)
+		for _, b := range candidates {
+			broad := patternOrder[b]
+			if !keep[broad] {
 				continue
 			}
-			if patternCovers(opens[broad].Path, opens[narrow].Path) {
+			if opens[broad].Path == opens[narrow].Path || segmentsCover(patternSegs[b], segs) {
 				opens[broad].Flags = newStringSet(slices.Concat(opens[broad].Flags, opens[narrow].Flags)...).sorted()
 				keep[narrow] = false
 				break
@@ -156,11 +175,18 @@ func AnalyzeOpen(path string, analyzer *PathAnalyzer) (string, error) {
 	return analyzer.AnalyzePath(path, "opens")
 }
 
-func patternCovers(broad, narrow string) bool {
-	if broad == narrow {
-		return true
+type segPrefix struct {
+	n int
+	s string
+}
+
+func literalPrefixLen(segs []string) int {
+	for i, s := range segs {
+		if s == match.WildcardIdentifier || s == match.DynamicIdentifier {
+			return i
+		}
 	}
-	return segmentsCover(match.SplitPath(broad), match.SplitPath(narrow))
+	return len(segs)
 }
 
 func segmentsCover(broad, narrow []string) bool {
