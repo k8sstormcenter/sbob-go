@@ -12,7 +12,41 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 	if opens == nil {
 		return nil, nil
 	}
+	keys, groups := groupByProcesses(opens)
+	if len(keys) == 1 {
+		return ConsolidateOpens(analyzeOpenGroup(opens, analyzer, pinned), pinned), nil
+	}
+	byPath := make(map[string]Open)
+	for _, k := range keys {
+		for _, o := range analyzeOpenGroup(groups[k], NewPathAnalyzerWithConfigs(analyzer.threshold, analyzer.configs), pinned) {
+			if existing, ok := byPath[o.Path]; ok {
+				byPath[o.Path] = mergeOpen(existing, o)
+			} else {
+				byPath[o.Path] = o
+			}
+		}
+	}
+	result := slices.SortedFunc(maps.Values(byPath), func(a, b Open) int {
+		return strings.Compare(a.Path, b.Path)
+	})
+	return ConsolidateOpens(result, pinned), nil
+}
 
+func groupByProcesses(opens []Open) ([]string, map[string][]Open) {
+	groups := make(map[string][]Open)
+	var keys []string
+	for _, o := range opens {
+		k := strings.Join(newStringSet(o.Processes...).sorted(), "\x00")
+		if _, ok := groups[k]; !ok {
+			keys = append(keys, k)
+		}
+		groups[k] = append(groups[k], o)
+	}
+	slices.Sort(keys)
+	return keys, groups
+}
+
+func analyzeOpenGroup(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool) []Open {
 	dynamicOpens := make(map[string]Open)
 	for _, open := range opens {
 		_, _ = AnalyzeOpen(open.Path, analyzer)
@@ -41,11 +75,9 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 		}
 	}
 
-	result := slices.SortedFunc(maps.Values(dynamicOpens), func(a, b Open) int {
+	return slices.SortedFunc(maps.Values(dynamicOpens), func(a, b Open) int {
 		return strings.Compare(a.Path, b.Path)
 	})
-
-	return ConsolidateOpens(result, pinned), nil
 }
 
 // consolidateOpens drops any literal Open whose path is already covered
