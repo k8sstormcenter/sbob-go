@@ -161,7 +161,7 @@ func AnalyzeExecs(execs []Exec, analyzer *ExecAnalyzer) []Exec {
 	}
 
 	for _, path := range directPaths {
-		out = append(out, ConsolidateExecs(dedupeByArgv(direct[path]))...)
+		out = append(out, analyzeRuntimeExecs(path, direct[path], analyzer.thresholdFor(path))...)
 	}
 	for _, path := range paths {
 		out = append(out, analyzeBinaryExecs(path, byPath[path], analyzer.thresholdFor(path))...)
@@ -520,4 +520,72 @@ func safeInterpreterShape(shape string) bool {
 		return false
 	}
 	return !match.DirectInterpreterInvocation("", []string{last})
+}
+
+type prefixRoot struct {
+	prefix string
+	argc   int
+}
+
+func analyzeRuntimeExecs(path string, execs []Exec, threshold int) []Exec {
+	entries := ConsolidateExecs(dedupeByArgv(execs))
+	roots := make(map[prefixRoot]*argNode)
+	prefixes := make(map[prefixRoot][]string)
+	var fixed []Exec
+	for _, e := range entries {
+		n := match.LiteralPrefix(path, e.Args)
+		if n <= 0 || n >= len(e.Args) || hasDynamicToken(e.Args[:n]) || slices.Contains(e.Args[n:], match.ExecArgsWildcard) {
+			fixed = append(fixed, e)
+			continue
+		}
+		key := prefixRoot{prefix: tokensKey(e.Args[:n]), argc: len(e.Args)}
+		node, ok := roots[key]
+		if !ok {
+			node = newArgNode()
+			roots[key] = node
+			prefixes[key] = slices.Clone(e.Args[:n])
+		}
+		for _, arg := range e.Args[n:] {
+			child, ok := node.children[arg]
+			if !ok {
+				child = newArgNode()
+				node.children[arg] = child
+			}
+			node = child
+		}
+		node.terminal = true
+		node.envs.addAll(e.Envs...)
+	}
+
+	var patterns []Exec
+	for key, root := range roots {
+		collapseArgNode(root, threshold)
+		emitArgPatterns(root, path, slices.Clone(prefixes[key]), &patterns)
+	}
+
+	byPrefix := make(map[string][]Exec)
+	var order []string
+	for _, e := range ConsolidateExecs(patterns) {
+		k := tokensKey(e.Args[:match.LiteralPrefix(path, e.Args)])
+		if _, ok := byPrefix[k]; !ok {
+			order = append(order, k)
+		}
+		byPrefix[k] = append(byPrefix[k], e)
+	}
+	out := fixed
+	for _, k := range order {
+		group := byPrefix[k]
+		if len(group) <= threshold {
+			out = append(out, group...)
+			continue
+		}
+		n := match.LiteralPrefix(path, group[0].Args)
+		envs := stringSet{}
+		for _, e := range group {
+			envs.addAll(e.Envs...)
+		}
+		args := append(slices.Clone(group[0].Args[:n]), match.ExecArgsWildcard)
+		out = append(out, Exec{Path: path, Args: args, Envs: sortedEnvs(envs)})
+	}
+	return ConsolidateExecs(dedupeByArgv(out))
 }
