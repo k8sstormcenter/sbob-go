@@ -64,7 +64,7 @@ func ArgTokenRegexp(token, sep string) string {
 		return notSep + "*"
 	}
 	if !strings.Contains(token, DynamicIdentifier) {
-		return regexp.QuoteMeta(token)
+		return quoteArg(token, sep)
 	}
 	segs := strings.Split(token, "/")
 	parts := make([]string, 0, len(segs))
@@ -75,7 +75,7 @@ func ArgTokenRegexp(token, sep string) string {
 		case DynamicIdentifier:
 			parts = append(parts, notSepOrSlash+"*")
 		default:
-			parts = append(parts, regexp.QuoteMeta(seg))
+			parts = append(parts, quoteArg(seg, sep))
 		}
 	}
 	return strings.Join(parts, "/")
@@ -115,4 +115,12 @@ func ArgvRegexp(args []string, sep string) string {
 	}
 	b.WriteString("$")
 	return b.String()
+}
+
+func quoteArg(s, sep string) string {
+	q := regexp.QuoteMeta(s)
+	if sep == " " {
+		q = strings.ReplaceAll(q, " ", `\x20`)
+	}
+	return q
 }

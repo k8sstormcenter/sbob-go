@@ -5,10 +5,12 @@ import (
 	"fmt"
 	"regexp"
 	"regexp/syntax"
+	"strings"
 	"sync"
 )
 
 const (
+	ArgBoundary      = byte(0)
 	MaxExecRegexpLen = 16 << 10
 	maxPooledSubject = 64 << 10
 )
@@ -30,7 +32,7 @@ func CompileExecRegexp(expr string) (*ExecRegexp, error) {
 	if len(expr) > MaxExecRegexpLen {
 		return nil, fmt.Errorf("%w: %d bytes, limit %d", ErrExecRegexpTooLong, len(expr), MaxExecRegexpLen)
 	}
-	parsed, err := syntax.Parse(expr, syntax.ClassNL)
+	parsed, err := syntax.Parse(boundarySpaces(expr), syntax.ClassNL)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +90,7 @@ func (x *ExecRegexp) MatchArgs(args []string) bool {
 func AppendExecSubject(dst []byte, args []string) []byte {
 	for i, a := range args {
 		if i > 0 {
-			dst = append(dst, ' ')
+			dst = append(dst, ArgBoundary)
 		}
 		dst = append(dst, a...)
 	}
@@ -163,7 +165,7 @@ func argsHavePrefix(args []string, prefix string) bool {
 			return true
 		}
 		if i > 0 {
-			if prefix[0] != ' ' {
+			if prefix[0] != ArgBoundary {
 				return false
 			}
 			prefix = prefix[1:]
@@ -189,4 +191,23 @@ func subjectLen(args []string) int {
 		n += len(a)
 	}
 	return n
+}
+
+func boundarySpaces(expr string) string {
+	var b strings.Builder
+	b.Grow(len(expr) + 8)
+	for i := 0; i < len(expr); i++ {
+		c := expr[i]
+		switch {
+		case c == '\\' && i+1 < len(expr):
+			b.WriteByte(c)
+			i++
+			b.WriteByte(expr[i])
+		case c == ' ':
+			b.WriteString(`\x00`)
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
 }

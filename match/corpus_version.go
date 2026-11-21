@@ -1,3 +1,3 @@
 package match
 
-const CorpusVersion = "02d3b7e76c87df2824b6a53870ac1d514251d0b2a95a436b210e3bb206623827"
+const CorpusVersion = "759ea1ea57079998042a37d37c675fd06ca98607935d1ea60907d2d28ce49029"
