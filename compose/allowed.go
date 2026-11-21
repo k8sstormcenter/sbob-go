@@ -41,9 +41,9 @@ func entries(s *Sets, surface string) []match.Entry {
 				out = append(out, match.Entry{Path: path, ArgsRegex: x})
 			}
 		}
-	case match.SurfaceOpen:
+	case match.SurfaceOpen, match.SurfaceOpenBy:
 		for _, path := range fieldEntries(s.Opens) {
-			out = append(out, match.Entry{Path: path})
+			out = append(out, match.Entry{Path: path, Processes: s.OpenProcesses[path]})
 		}
 	case match.SurfaceDomain:
 		for _, name := range fieldEntries(s.EgressDomains) {

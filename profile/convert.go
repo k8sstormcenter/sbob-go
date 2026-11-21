@@ -41,6 +41,15 @@ func (e *DeadEntry) Error() string {
 	return fmt.Sprintf("%s: entry %q can never match", e.Field, e.Value)
 }
 
+type WideEntry struct {
+	Field string
+	Value string
+}
+
+func (e *WideEntry) Error() string {
+	return fmt.Sprintf("%s: entry %q admits every executable of its directory", e.Field, e.Value)
+}
+
 func FromLegacy(doc []byte) (*RuntimeProfile, error) {
 	p := &RuntimeProfile{}
 	if err := json.Unmarshal(doc, p); err != nil {
@@ -152,6 +161,9 @@ func validateSections(errs []error, field string, execs []ExecCall, opens []Open
 	}
 	for i := range opens {
 		errs = validatePath(errs, fmt.Sprintf("%s.opens[%d].path", field, i), opens[i].Path)
+		for j, p := range opens[i].Processes {
+			errs = validateProcess(errs, fmt.Sprintf("%s.opens[%d].processes[%d]", field, i, j), p)
+		}
 	}
 	errs = validateNeighbors(errs, field+".ingress", ingress)
 	errs = validateNeighbors(errs, field+".egress", egress)
@@ -180,6 +192,20 @@ func validatePath(errs []error, field, path string) []error {
 	}
 	if match.UnmatchablePath(path) {
 		return append(errs, &DeadEntry{Field: field, Value: path})
+	}
+	return errs
+}
+
+func validateProcess(errs []error, field, process string) []error {
+	if process == "" {
+		return append(errs, &Invalid{Field: field, Reason: "empty process"})
+	}
+	if match.UnmatchablePath(process) {
+		return append(errs, &DeadEntry{Field: field, Value: process})
+	}
+	name := process[strings.LastIndex(process, "/")+1:]
+	if strings.Contains(name, match.DynamicIdentifier) || strings.Contains(name, match.WildcardIdentifier) {
+		return append(errs, &WideEntry{Field: field, Value: process})
 	}
 	return errs
 }

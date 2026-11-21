@@ -11,8 +11,9 @@ type Exec struct {
 }
 
 type Open struct {
-	Path  string
-	Flags []string
+	Path      string
+	Flags     []string
+	Processes []string
 }
 
 const (

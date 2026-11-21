@@ -27,11 +27,9 @@ func Residual(shadow, bound *profile.Spec) *profile.Spec {
 		out.Execs = append(out.Execs, e.Clone())
 	}
 	for i := range shadow.Opens {
-		o := &shadow.Opens[i]
-		if openCovered(bound.Opens, o) || openDenied(bound.Subtract, o) {
-			continue
+		if r, ok := openResidual(bound, &shadow.Opens[i]); ok {
+			out.Opens = append(out.Opens, r)
 		}
-		out.Opens = append(out.Opens, o.Clone())
 	}
 	for _, s := range shadow.Syscalls {
 		if contains(bound.Syscalls, s) || (bound.Subtract != nil && contains(bound.Subtract.Syscalls, s)) {
@@ -80,9 +78,37 @@ func execCovered(bound []profile.ExecCall, regexps []*match.ExecRegexp, e *profi
 	return false
 }
 
-func openCovered(bound []profile.OpenCall, o *profile.OpenCall) bool {
-	for i := range bound {
-		if match.CompareDynamic(bound[i].Path, o.Path) {
+func openResidual(bound *profile.Spec, o *profile.OpenCall) (profile.OpenCall, bool) {
+	var sub []profile.OpenCall
+	if bound.Subtract != nil {
+		sub = bound.Subtract.Opens
+	}
+	if len(o.Processes) == 0 {
+		if openAdmits(bound.Opens, o.Path, "") || openAdmits(sub, o.Path, "") {
+			return profile.OpenCall{}, false
+		}
+		return o.Clone(), true
+	}
+	var left []string
+	for _, p := range o.Processes {
+		if !openAdmits(bound.Opens, o.Path, p) && !openAdmits(sub, o.Path, p) {
+			left = append(left, p)
+		}
+	}
+	if len(left) == 0 {
+		return profile.OpenCall{}, false
+	}
+	r := o.Clone()
+	r.Processes = left
+	return r, true
+}
+
+func openAdmits(entries []profile.OpenCall, path, exe string) bool {
+	for i := range entries {
+		if !match.CompareDynamic(entries[i].Path, path) {
+			continue
+		}
+		if len(entries[i].Processes) == 0 || (exe != "" && match.ProcessAdmitted(entries[i].Processes, exe)) {
 			return true
 		}
 	}
@@ -105,18 +131,6 @@ func execDenied(sub *profile.Subtract, regexps []*match.ExecRegexp, e *profile.E
 			continue
 		}
 		if len(d.Args) == 0 || match.CompareExecArgs(d.Args, e.Args) {
-			return true
-		}
-	}
-	return false
-}
-
-func openDenied(sub *profile.Subtract, o *profile.OpenCall) bool {
-	if sub == nil {
-		return false
-	}
-	for i := range sub.Opens {
-		if match.CompareDynamic(sub.Opens[i].Path, o.Path) {
 			return true
 		}
 	}

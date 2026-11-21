@@ -10,12 +10,15 @@ type Entry struct {
 	Args      []string
 	Name      string
 	ArgsRegex *ExecRegexp
+	Processes []string
+	Exe       string
 }
 
 const (
 	SurfaceExec     = "exec"
 	SurfaceExecPath = "exec_path"
 	SurfaceOpen     = "open"
+	SurfaceOpenBy   = "open_by"
 	SurfaceDomain   = "domain"
 )
 
@@ -92,6 +95,52 @@ func OpenPathMatches(entries []Entry, rt Entry) bool {
 	return false
 }
 
+func OpenPathDenied(entries []Entry, rt Entry) bool {
+	for _, e := range entries {
+		if len(e.Processes) == 0 && CompareDynamic(e.Path, rt.Path) {
+			return true
+		}
+	}
+	return false
+}
+
+func OpenByMatches(entries []Entry, rt Entry) bool {
+	for _, e := range entries {
+		if CompareDynamic(e.Path, rt.Path) && ProcessAdmitted(e.Processes, rt.Exe) {
+			return true
+		}
+	}
+	return false
+}
+
+func OpenByDenied(entries []Entry, rt Entry) bool {
+	for _, e := range entries {
+		if !CompareDynamic(e.Path, rt.Path) {
+			continue
+		}
+		if len(e.Processes) == 0 || (rt.Exe != "" && processMatches(e.Processes, rt.Exe)) {
+			return true
+		}
+	}
+	return false
+}
+
+func ProcessAdmitted(processes []string, exe string) bool {
+	if len(processes) == 0 {
+		return true
+	}
+	return exe != "" && processMatches(processes, exe)
+}
+
+func processMatches(processes []string, exe string) bool {
+	for _, p := range processes {
+		if p == exe || CompareDynamic(p, exe) {
+			return true
+		}
+	}
+	return false
+}
+
 func DomainMatches(entries []Entry, rt Entry) bool {
 	names := make([]string, 0, len(entries))
 	for _, e := range entries {
@@ -108,7 +157,9 @@ func Allowed(surface string, allow, subtract []Entry, rt Entry) (bool, error) {
 	case SurfaceExecPath:
 		match, deny = ExecPathMatches, ExecPathDenied
 	case SurfaceOpen:
-		match, deny = OpenPathMatches, OpenPathMatches
+		match, deny = OpenPathMatches, OpenPathDenied
+	case SurfaceOpenBy:
+		match, deny = OpenByMatches, OpenByDenied
 	case SurfaceDomain:
 		match, deny = DomainMatches, DomainMatches
 	default:

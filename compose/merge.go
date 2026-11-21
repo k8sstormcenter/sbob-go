@@ -327,8 +327,8 @@ func (l *lists) add(capabilities []string, execs []profile.ExecCall, opens []pro
 		}
 	}
 	for _, e := range opens {
-		n := profile.OpenCall{Path: e.Path, Flags: cloneStrings(e.Flags), Extra: cloneExtra(e.Extra)}
-		fresh, err := l.once("o", openKey{n.Path, n.Flags, n.Extra})
+		n := profile.OpenCall{Path: e.Path, Flags: cloneStrings(e.Flags), Processes: cloneStrings(e.Processes), Extra: cloneExtra(e.Extra)}
+		fresh, err := l.once("o", openKey{n.Path, n.Flags, n.Processes, n.Extra})
 		if err != nil {
 			return err
 		}
@@ -384,9 +384,10 @@ type execKey struct {
 }
 
 type openKey struct {
-	Path  string                     `json:"path"`
-	Flags []string                   `json:"flags"`
-	Extra map[string]json.RawMessage `json:"extra,omitempty"`
+	Path      string                     `json:"path"`
+	Flags     []string                   `json:"flags"`
+	Processes []string                   `json:"processes"`
+	Extra     map[string]json.RawMessage `json:"extra,omitempty"`
 }
 
 type endpointKey struct {
