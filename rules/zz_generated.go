@@ -72,6 +72,7 @@ var Functions = []ProfileFunction{
 	{Name: "cp.was_path_opened_with_flags", Arity: 3},
 	{Name: "cp.was_path_opened_with_prefix", Arity: 2},
 	{Name: "cp.was_path_opened_with_suffix", Arity: 2},
+	{Name: "cp.was_path_opened_with_suffix_by", Arity: 3},
 	{Name: "cp.was_selector_in_egress", Arity: 5},
 	{Name: "cp.was_selector_in_ingress", Arity: 5},
 	{Name: "cp.was_syscall_used", Arity: 2},
