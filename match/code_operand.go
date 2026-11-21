@@ -75,6 +75,7 @@ func resolveInterpreter(path string, args []string, depth int) (interpreterKind,
 		if wrapperNames[argv0] {
 			return resolveWrapped(argv0, args, depth)
 		}
+		return notInterpreter, 0
 	}
 	if pathName != "busybox" && usableName(pathName) {
 		if k := kindOfName(pathName); k != notInterpreter {
