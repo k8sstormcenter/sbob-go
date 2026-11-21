@@ -30,6 +30,19 @@ func baseName(p string) string {
 	return p
 }
 
+func versioned(name, base string) bool {
+	if !strings.HasPrefix(name, base) {
+		return false
+	}
+	rest := name[len(base):]
+	for _, r := range rest {
+		if !(r >= '0' && r <= '9' || r == '.') {
+			return false
+		}
+	}
+	return true
+}
+
 func kindOfName(name string) interpreterKind {
 	switch {
 	case shellNames[name]:
@@ -38,15 +51,15 @@ func kindOfName(name string) interpreterKind {
 		return kindAwk
 	case name == "node" || name == "nodejs":
 		return kindNode
-	case strings.HasPrefix(name, "python"):
+	case versioned(name, "python"):
 		return kindPython
-	case strings.HasPrefix(name, "perl"):
+	case versioned(name, "perl"):
 		return kindPerl
-	case strings.HasPrefix(name, "ruby"):
+	case versioned(name, "ruby"):
 		return kindRuby
-	case strings.HasPrefix(name, "php"):
+	case versioned(name, "php"):
 		return kindPHP
-	case strings.HasPrefix(name, "lua"):
+	case versioned(name, "lua"):
 		return kindLua
 	}
 	return notInterpreter
