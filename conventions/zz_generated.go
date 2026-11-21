@@ -3,7 +3,7 @@
 package conventions
 
 const (
-	SpecVersion                             = "0.1.0"
+	SpecVersion                             = "0.3.0"
 	Prefix                                  = "sbob"
 	GroupProfiles                           = "profiles.sbob"
 	GroupRules                              = "rules.sbob"

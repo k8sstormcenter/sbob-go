@@ -135,6 +135,7 @@ func (v ExecCall) Clone() ExecCall {
 
 func (v OpenCall) Clone() OpenCall {
 	v.Flags = cloneValues(v.Flags)
+	v.Processes = cloneValues(v.Processes)
 	v.Extra = cloneExtra(v.Extra)
 	return v
 }
