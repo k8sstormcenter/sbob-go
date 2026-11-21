@@ -138,11 +138,20 @@ func AnalyzeExecs(execs []Exec, analyzer *ExecAnalyzer) []Exec {
 	seenPassthrough := stringSet{}
 	byPath := make(map[string][]Exec)
 	var paths []string
+	direct := make(map[string][]Exec)
+	var directPaths []string
 	for _, e := range execs {
 		if e.ArgsRegex != "" || e.ArgsRequired || len(e.Args) == 0 {
 			if seenPassthrough.add(execKey(e)) {
 				out = append(out, e)
 			}
+			continue
+		}
+		if match.DirectInterpreterInvocation(e.Path, e.Args) {
+			if _, ok := direct[e.Path]; !ok {
+				directPaths = append(directPaths, e.Path)
+			}
+			direct[e.Path] = append(direct[e.Path], e)
 			continue
 		}
 		if _, ok := byPath[e.Path]; !ok {
@@ -151,6 +160,9 @@ func AnalyzeExecs(execs []Exec, analyzer *ExecAnalyzer) []Exec {
 		byPath[e.Path] = append(byPath[e.Path], e)
 	}
 
+	for _, path := range directPaths {
+		out = append(out, ConsolidateExecs(dedupeByArgv(direct[path]))...)
+	}
 	for _, path := range paths {
 		out = append(out, analyzeBinaryExecs(path, byPath[path], analyzer.thresholdFor(path))...)
 	}
@@ -171,7 +183,7 @@ func analyzeBinaryExecs(path string, execs []Exec, threshold int) []Exec {
 	// Absorb covered inputs before any generalization, then again after
 	// argv[0] collapses (which can create duplicates and covered entries).
 	entries := ConsolidateExecs(dedupeByArgv(execs))
-	entries = ConsolidateExecs(dedupeByArgv(collapseArgv0(entries, threshold)))
+	entries = ConsolidateExecs(dedupeByArgv(collapseArgv0(entries, threshold, match.IsInterpreterPath(path))))
 
 	roots := make(map[argRoot]*argNode)
 	var anyArgs []Exec
@@ -249,7 +261,7 @@ func dedupeByArgv(execs []Exec) []Exec {
 // or a whole segment — stays literal data. PathAnalyzer is not used here: its
 // * is opens glob syntax. Every shape is verified with CompareExecArgs against
 // its original. Input is not mutated.
-func collapseArgv0(execs []Exec, threshold int) []Exec {
+func collapseArgv0(execs []Exec, threshold int, keepShape bool) []Exec {
 	distinct := stringSet{}
 	for _, e := range execs {
 		distinct.add(e.Args[0])
@@ -297,9 +309,9 @@ func collapseArgv0(execs []Exec, threshold int) []Exec {
 				shape[i], node = match.DynamicIdentifier, node.children[match.DynamicIdentifier]
 			}
 		}
-		if candidate := strings.Join(shape, "/"); match.CompareExecArgs([]string{candidate}, []string{argv0}) {
+		if candidate := strings.Join(shape, "/"); match.CompareExecArgs([]string{candidate}, []string{argv0}) && (!keepShape || safeInterpreterShape(candidate)) {
 			mapped[argv0] = candidate
-		} else {
+		} else if !keepShape {
 			mapped[argv0] = match.DynamicIdentifier
 		}
 	}
@@ -308,7 +320,7 @@ func collapseArgv0(execs []Exec, threshold int) []Exec {
 	for _, shape := range mapped {
 		shapes.add(shape)
 	}
-	if len(shapes) > threshold {
+	if len(shapes) > threshold && !keepShape {
 		for argv0 := range mapped {
 			mapped[argv0] = match.DynamicIdentifier
 		}
@@ -500,4 +512,12 @@ func normalizedEnvs(envs []string) []string {
 	out := slices.Clone(envs)
 	slices.Sort(out)
 	return slices.Compact(out)
+}
+
+func safeInterpreterShape(shape string) bool {
+	last := shape[strings.LastIndex(shape, "/")+1:]
+	if last == "" || strings.Contains(last, match.DynamicIdentifier) || strings.Contains(last, match.WildcardIdentifier) {
+		return false
+	}
+	return !match.DirectInterpreterInvocation("", []string{last})
 }
