@@ -14,7 +14,7 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 	}
 	keys, groups := groupByProcesses(opens)
 	if len(keys) == 1 {
-		return ConsolidateOpens(analyzeOpenGroup(opens, analyzer, pinned), pinned), nil
+		return canonicalOpens(ConsolidateOpens(analyzeOpenGroup(opens, analyzer, pinned), pinned)), nil
 	}
 	byPath := make(map[string]Open)
 	for _, k := range keys {
@@ -29,7 +29,25 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 	result := slices.SortedFunc(maps.Values(byPath), func(a, b Open) int {
 		return strings.Compare(a.Path, b.Path)
 	})
-	return ConsolidateOpens(result, pinned), nil
+	return canonicalOpens(ConsolidateOpens(result, pinned)), nil
+}
+
+func canonicalOpens(opens []Open) []Open {
+	for i := range opens {
+		if len(opens[i].Flags) > 0 {
+			opens[i].Flags = newStringSet(opens[i].Flags...).sorted()
+		}
+		opens[i].Processes = match.NormalProcesses(opens[i].Processes)
+	}
+	return opens
+}
+
+func putOpen(opens map[string]Open, path string, o Open) {
+	if existing, ok := opens[path]; ok {
+		opens[path] = mergeOpen(existing, o)
+		return
+	}
+	opens[path] = o
 }
 
 func groupByProcesses(opens []Open) ([]string, map[string][]Open) {
@@ -55,7 +73,7 @@ func analyzeOpenGroup(opens []Open, analyzer *PathAnalyzer, pinned func(string) 
 	for i := range opens {
 		// sbomSet files have to be always present in the dynamicOpens
 		if pinned != nil && pinned(opens[i].Path) {
-			dynamicOpens[opens[i].Path] = opens[i]
+			putOpen(dynamicOpens, opens[i].Path, opens[i])
 			continue
 		}
 
@@ -65,13 +83,9 @@ func analyzeOpenGroup(opens []Open, analyzer *PathAnalyzer, pinned func(string) 
 		}
 
 		if result != opens[i].Path {
-			if existing, ok := dynamicOpens[result]; ok {
-				dynamicOpens[result] = mergeOpen(existing, opens[i])
-			} else {
-				dynamicOpens[result] = Open{Path: result, Flags: opens[i].Flags, Processes: opens[i].Processes}
-			}
+			putOpen(dynamicOpens, result, Open{Path: result, Flags: opens[i].Flags, Processes: opens[i].Processes})
 		} else {
-			dynamicOpens[opens[i].Path] = opens[i]
+			putOpen(dynamicOpens, opens[i].Path, opens[i])
 		}
 	}
 
