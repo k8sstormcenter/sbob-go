@@ -105,10 +105,7 @@ func openResidual(bound *profile.Spec, o *profile.OpenCall) (profile.OpenCall, b
 
 func openAdmits(entries []profile.OpenCall, path, exe string) bool {
 	for i := range entries {
-		if !match.CompareDynamic(entries[i].Path, path) {
-			continue
-		}
-		if len(entries[i].Processes) == 0 || (exe != "" && match.ProcessAdmitted(entries[i].Processes, exe)) {
+		if match.CompareDynamic(entries[i].Path, path) && match.ProcessAdmitted(entries[i].Processes, exe) {
 			return true
 		}
 	}

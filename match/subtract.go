@@ -114,15 +114,7 @@ func OpenByMatches(entries []Entry, rt Entry) bool {
 }
 
 func OpenByDenied(entries []Entry, rt Entry) bool {
-	for _, e := range entries {
-		if !CompareDynamic(e.Path, rt.Path) {
-			continue
-		}
-		if len(e.Processes) == 0 || (rt.Exe != "" && processMatches(e.Processes, rt.Exe)) {
-			return true
-		}
-	}
-	return false
+	return OpenByMatches(entries, rt)
 }
 
 func ProcessAdmitted(processes []string, exe string) bool {

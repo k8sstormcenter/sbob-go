@@ -1,6 +1,7 @@
 package compose
 
 import (
+	"maps"
 	"slices"
 	"strconv"
 	"strings"
@@ -204,27 +205,16 @@ func openFlags(opens []profile.OpenCall) map[string][]string {
 }
 
 func openProcesses(opens []profile.OpenCall) map[string][]string {
-	anyProcess := make(map[string]bool)
 	m := make(map[string][]string)
 	for i := range opens {
 		o := &opens[i]
-		if len(o.Processes) == 0 {
-			anyProcess[o.Path] = true
-			delete(m, o.Path)
-			continue
+		cur, seen := m[o.Path]
+		if !seen {
+			cur = o.Processes
 		}
-		if anyProcess[o.Path] {
-			continue
-		}
-		cur := m[o.Path]
-		for _, p := range o.Processes {
-			if !slices.Contains(cur, p) {
-				cur = append(cur, p)
-			}
-		}
-		slices.Sort(cur)
-		m[o.Path] = cur
+		m[o.Path] = match.UnionProcesses(cur, o.Processes)
 	}
+	maps.DeleteFunc(m, func(_ string, v []string) bool { return len(v) == 0 })
 	if len(m) == 0 {
 		return nil
 	}
