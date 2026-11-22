@@ -12,7 +12,41 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 	if opens == nil {
 		return nil, nil
 	}
+	keys, groups := groupByProcesses(opens)
+	if len(keys) == 1 {
+		return ConsolidateOpens(analyzeOpenGroup(opens, analyzer, pinned), pinned), nil
+	}
+	byPath := make(map[string]Open)
+	for _, k := range keys {
+		for _, o := range analyzeOpenGroup(groups[k], NewPathAnalyzerWithConfigs(analyzer.threshold, analyzer.configs), pinned) {
+			if existing, ok := byPath[o.Path]; ok {
+				byPath[o.Path] = mergeOpen(existing, o)
+			} else {
+				byPath[o.Path] = o
+			}
+		}
+	}
+	result := slices.SortedFunc(maps.Values(byPath), func(a, b Open) int {
+		return strings.Compare(a.Path, b.Path)
+	})
+	return ConsolidateOpens(result, pinned), nil
+}
 
+func groupByProcesses(opens []Open) ([]string, map[string][]Open) {
+	groups := make(map[string][]Open)
+	var keys []string
+	for _, o := range opens {
+		k := strings.Join(newStringSet(o.Processes...).sorted(), "\x00")
+		if _, ok := groups[k]; !ok {
+			keys = append(keys, k)
+		}
+		groups[k] = append(groups[k], o)
+	}
+	slices.Sort(keys)
+	return keys, groups
+}
+
+func analyzeOpenGroup(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool) []Open {
 	dynamicOpens := make(map[string]Open)
 	for _, open := range opens {
 		_, _ = AnalyzeOpen(open.Path, analyzer)
@@ -32,22 +66,18 @@ func AnalyzeOpens(opens []Open, analyzer *PathAnalyzer, pinned func(string) bool
 
 		if result != opens[i].Path {
 			if existing, ok := dynamicOpens[result]; ok {
-				existing.Flags = newStringSet(slices.Concat(existing.Flags, opens[i].Flags)...).sorted()
-				dynamicOpens[result] = existing
+				dynamicOpens[result] = mergeOpen(existing, opens[i])
 			} else {
-				dynamicOpen := Open{Path: result, Flags: opens[i].Flags}
-				dynamicOpens[result] = dynamicOpen
+				dynamicOpens[result] = Open{Path: result, Flags: opens[i].Flags, Processes: opens[i].Processes}
 			}
 		} else {
 			dynamicOpens[opens[i].Path] = opens[i]
 		}
 	}
 
-	result := slices.SortedFunc(maps.Values(dynamicOpens), func(a, b Open) int {
+	return slices.SortedFunc(maps.Values(dynamicOpens), func(a, b Open) int {
 		return strings.Compare(a.Path, b.Path)
 	})
-
-	return ConsolidateOpens(result, pinned), nil
 }
 
 // consolidateOpens drops any literal Open whose path is already covered
@@ -117,12 +147,15 @@ func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 		}
 		best := -1
 		for _, pi := range index.coverers(o.Path) {
+			if !processesCover(opens[pi].Processes, o.Processes) {
+				continue
+			}
 			if best < 0 || rank[pi] < rank[best] {
 				best = pi
 			}
 		}
 		if best >= 0 {
-			opens[best].Flags = newStringSet(slices.Concat(opens[best].Flags, o.Flags)...).sorted()
+			opens[best] = mergeOpen(opens[best], o)
 			keep[i] = false
 		}
 	}
@@ -154,8 +187,11 @@ func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 			if !keep[broad] {
 				continue
 			}
+			if !processesCover(opens[broad].Processes, opens[narrow].Processes) {
+				continue
+			}
 			if opens[broad].Path == opens[narrow].Path || segmentsCover(patternSegs[b], segs) {
-				opens[broad].Flags = newStringSet(slices.Concat(opens[broad].Flags, opens[narrow].Flags)...).sorted()
+				opens[broad] = mergeOpen(opens[broad], opens[narrow])
 				keep[narrow] = false
 				break
 			}
@@ -169,6 +205,38 @@ func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 		}
 	}
 	return out
+}
+
+func mergeOpen(into, from Open) Open {
+	into.Flags = newStringSet(slices.Concat(into.Flags, from.Flags)...).sorted()
+	if len(into.Processes) == 0 || len(from.Processes) == 0 {
+		into.Processes = nil
+	} else {
+		into.Processes = newStringSet(slices.Concat(into.Processes, from.Processes)...).sorted()
+	}
+	return into
+}
+
+func processesCover(broad, narrow []string) bool {
+	if len(broad) == 0 {
+		return true
+	}
+	if len(narrow) == 0 {
+		return false
+	}
+	for _, n := range narrow {
+		covered := false
+		for _, b := range broad {
+			if b == n || segmentsCover(match.SplitPath(b), match.SplitPath(n)) {
+				covered = true
+				break
+			}
+		}
+		if !covered {
+			return false
+		}
+	}
+	return true
 }
 
 func AnalyzeOpen(path string, analyzer *PathAnalyzer) (string, error) {

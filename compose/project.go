@@ -48,9 +48,10 @@ type Sets struct {
 	IngressDomains   Field
 	IngressAddresses Field
 
-	ExecArgs    map[string][][]string
-	ExecRegexps map[string][]*match.ExecRegexp
-	OpenFlags   map[string][]string
+	ExecArgs      map[string][][]string
+	ExecRegexps   map[string][]*match.ExecRegexp
+	OpenFlags     map[string][]string
+	OpenProcesses map[string][]string
 
 	EgressPeers  []Peer
 	IngressPeers []Peer
@@ -104,6 +105,7 @@ func projectSets(capabilities []string, execs []profile.ExecCall, opens []profil
 	}
 	s.Opens = field(openPaths, true)
 	s.OpenFlags = openFlags(opens)
+	s.OpenProcesses = openProcesses(opens)
 
 	execPaths := make([]string, len(execs))
 	for i := range execs {
@@ -197,6 +199,34 @@ func openFlags(opens []profile.OpenCall) map[string][]string {
 		}
 		slices.Sort(cur)
 		m[o.Path] = cur
+	}
+	return m
+}
+
+func openProcesses(opens []profile.OpenCall) map[string][]string {
+	anyProcess := make(map[string]bool)
+	m := make(map[string][]string)
+	for i := range opens {
+		o := &opens[i]
+		if len(o.Processes) == 0 {
+			anyProcess[o.Path] = true
+			delete(m, o.Path)
+			continue
+		}
+		if anyProcess[o.Path] {
+			continue
+		}
+		cur := m[o.Path]
+		for _, p := range o.Processes {
+			if !slices.Contains(cur, p) {
+				cur = append(cur, p)
+			}
+		}
+		slices.Sort(cur)
+		m[o.Path] = cur
+	}
+	if len(m) == 0 {
+		return nil
 	}
 	return m
 }

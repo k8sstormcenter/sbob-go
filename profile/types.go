@@ -319,10 +319,11 @@ func (v ExecCall) MarshalJSON() ([]byte, error) {
 }
 
 type OpenCall struct {
-	Path  string                     `json:"path,omitempty"`
-	Flags []string                   `json:"flags,omitempty"`
-	Extra map[string]json.RawMessage `json:"-"`
-	seen  map[string]bool
+	Path      string                     `json:"path,omitempty"`
+	Flags     []string                   `json:"flags,omitempty"`
+	Processes []string                   `json:"processes,omitempty"`
+	Extra     map[string]json.RawMessage `json:"-"`
+	seen      map[string]bool
 }
 
 func (v *OpenCall) UnmarshalJSON(data []byte) error {
@@ -333,6 +334,7 @@ func (v *OpenCall) UnmarshalJSON(data []byte) error {
 	n := OpenCall{}
 	readField(r, "path", &n.Path)
 	readField(r, "flags", &n.Flags)
+	readField(r, "processes", &n.Processes)
 	n.seen, n.Extra, err = r.finish()
 	if err != nil {
 		return err
@@ -345,6 +347,7 @@ func (v OpenCall) MarshalJSON() ([]byte, error) {
 	w := writeObject(v.seen, v.Extra)
 	writeField(w, "path", v.Path, v.Path == "")
 	writeField(w, "flags", v.Flags, v.Flags == nil)
+	writeField(w, "processes", v.Processes, v.Processes == nil)
 	return w.finish()
 }
 
