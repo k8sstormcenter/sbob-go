@@ -36,7 +36,7 @@ func groupByProcesses(opens []Open) ([]string, map[string][]Open) {
 	groups := make(map[string][]Open)
 	var keys []string
 	for _, o := range opens {
-		k := strings.Join(newStringSet(o.Processes...).sorted(), "\x00")
+		k := match.ProcessSetKey(o.Processes)
 		if _, ok := groups[k]; !ok {
 			keys = append(keys, k)
 		}
@@ -209,11 +209,7 @@ func ConsolidateOpens(opens []Open, pinned func(string) bool) []Open {
 
 func mergeOpen(into, from Open) Open {
 	into.Flags = newStringSet(slices.Concat(into.Flags, from.Flags)...).sorted()
-	if len(into.Processes) == 0 || len(from.Processes) == 0 {
-		into.Processes = nil
-	} else {
-		into.Processes = newStringSet(slices.Concat(into.Processes, from.Processes)...).sorted()
-	}
+	into.Processes = match.UnionProcesses(into.Processes, from.Processes)
 	return into
 }
 
