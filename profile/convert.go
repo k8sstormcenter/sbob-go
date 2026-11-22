@@ -197,8 +197,8 @@ func validatePath(errs []error, field, path string) []error {
 }
 
 func validateProcess(errs []error, field, process string) []error {
-	if process == "" {
-		return append(errs, &Invalid{Field: field, Reason: "empty process"})
+	if err := match.CheckProcess(process); err != nil {
+		return append(errs, &Invalid{Field: field, Reason: err.Error()})
 	}
 	if match.UnmatchablePath(process) {
 		return append(errs, &DeadEntry{Field: field, Value: process})
