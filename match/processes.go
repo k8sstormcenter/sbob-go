@@ -1,9 +1,19 @@
 package match
 
 import (
+	"errors"
 	"slices"
 	"strings"
 )
+
+var ErrEmptyProcess = errors.New("empty process")
+
+func CheckProcess(process string) error {
+	if process == "" {
+		return ErrEmptyProcess
+	}
+	return nil
+}
 
 func ProcessSetKey(processes []string) string {
 	return strings.Join(normalProcesses(processes), "\x00")
