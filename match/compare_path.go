@@ -239,7 +239,7 @@ func compareSegmentsIndex(dynamicPath string, di int, regularPath string, ri int
 	rSeg, rNext := SegAt(regularPath, ri)
 	// "⋯" matches any single segment; otherwise a literal segment match
 	// (a bare "*" was already handled as a zero-or-more wildcard above).
-	if dSeg == DynamicIdentifier || dSeg == rSeg {
+	if dSeg == DynamicIdentifier || dSeg == rSeg || segmentMatches(dSeg, rSeg) {
 		return compareSegmentsIndex(dynamicPath, dNext, regularPath, rNext)
 	}
 	return false
@@ -283,7 +283,7 @@ func compareSegmentsMemo(dynamic, regular []string, di, ri int, memo map[[2]int]
 		}
 	} else if ri == len(regular) {
 		result = false
-	} else if dynamic[di] == DynamicIdentifier || dynamic[di] == regular[ri] {
+	} else if dynamic[di] == DynamicIdentifier || dynamic[di] == regular[ri] || segmentMatches(dynamic[di], regular[ri]) {
 		// "⋯" matches any single segment; otherwise a literal segment match.
 		result = compareSegmentsMemo(dynamic, regular, di+1, ri+1, memo)
 	}

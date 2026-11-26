@@ -45,6 +45,10 @@ func PathRegexp(pattern string) string {
 			b.WriteString("[^/]+")
 			continue
 		}
+		if IsSegmentPattern(seg) {
+			b.WriteString(segmentPatternRegexp(seg, "[^/]+", quotePathPart))
+			continue
+		}
 		b.WriteString(regexp.QuoteMeta(seg))
 	}
 	b.WriteString("$")
@@ -75,6 +79,10 @@ func ArgTokenRegexp(token, sep string) string {
 		case DynamicIdentifier:
 			parts = append(parts, notSepOrSlash+"*")
 		default:
+			if IsSegmentPattern(seg) {
+				parts = append(parts, segmentPatternRegexp(seg, notSepOrSlash+"+", func(p string) string { return quoteArg(p, sep) }))
+				continue
+			}
 			parts = append(parts, quoteArg(seg, sep))
 		}
 	}

@@ -163,7 +163,7 @@ func matchExecArgSegments(profileArg, runtimeArg string) bool {
 
 func segmentsMatch(p, r []string) bool {
 	for i := range p {
-		if p[i] != DynamicIdentifier && p[i] != r[i] {
+		if p[i] != DynamicIdentifier && !segmentMatches(p[i], r[i]) {
 			return false
 		}
 	}
