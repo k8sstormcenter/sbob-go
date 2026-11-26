@@ -58,6 +58,8 @@ const (
 	LegacyLabelHostFragment                 = "kubescape.io/host-fragment"
 	LabelHostFragmentBase                   = "sbob/host-fragment-base"
 	LegacyLabelHostFragmentBase             = "kubescape.io/host-fragment-base"
+	LabelHostFingerprint                    = "sbob/host-fingerprint"
+	LegacyLabelHostFingerprint              = "kubescape.io/host-fingerprint"
 	LabelBundle                             = "sbob/bundle"
 	LegacyLabelBundle                       = "signature.kubescape.io/bundle"
 	LabelFragmentClass                      = "sbob/fragment-class"
@@ -100,6 +102,8 @@ const (
 	LegacyLabelSuggestBundle                = "kubescape.io/suggest-bundle"
 	AnnotationSpecVersion                   = "sbob/spec-version"
 	LegacyAnnotationSpecVersion             = "sbob.io/spec-version"
+	AnnotationHostFingerprintParts          = "sbob/host-fingerprint-parts"
+	LegacyAnnotationHostFingerprintParts    = "kubescape.io/host-fingerprint-parts"
 	AnnotationStatus                        = "sbob/status"
 	LegacyAnnotationStatus                  = "kubescape.io/status"
 	AnnotationCompletion                    = "sbob/completion"
@@ -236,6 +240,7 @@ var Labels = []Entry{
 	{Key: LabelProfileFragment, Legacy: LegacyLabelProfileFragment, Meaning: "fragment marker on an authored container document"},
 	{Key: LabelHostFragment, Legacy: LegacyLabelHostFragment, Meaning: "fragment class marker on an authored host document"},
 	{Key: LabelHostFragmentBase, Legacy: LegacyLabelHostFragmentBase, Meaning: "reference to the base fragment of a host document"},
+	{Key: LabelHostFingerprint, Legacy: LegacyLabelHostFingerprint, Meaning: "first 32 hex digits of the SHA-256 of a learned host fragment's canonical fingerprint parts; absent on the custom fragment"},
 	{Key: LabelBundle, Legacy: LegacyLabelBundle, Meaning: "bundle a signed fragment belongs to"},
 	{Key: LabelFragmentClass, Legacy: LegacyLabelFragmentClass, Values: []string{"base", "admission", "overlay"}, Meaning: "class of a signed fragment"},
 	{Key: LabelVersion, Legacy: LegacyLabelVersion, Meaning: "monotonic version of a signed fragment"},
@@ -258,6 +263,7 @@ var Labels = []Entry{
 
 var Annotations = []Entry{
 	{Key: AnnotationSpecVersion, Legacy: LegacyAnnotationSpecVersion, Meaning: "specification version the document conforms to"},
+	{Key: AnnotationHostFingerprintParts, Legacy: LegacyAnnotationHostFingerprintParts, Meaning: "compact JSON of the fields a learned host fragment was produced on (kernel - kernelRelease, kernelBuild, arch; packages - osID, osVersion, packageDB, arch; runtime - runtime, runtimeVersion, cni, cniVersion, arch)"},
 	{Key: AnnotationStatus, Legacy: LegacyAnnotationStatus, Values: []string{"initializing", "ready", "completed", "failed", "too-large", "incomplete", "missing-runtime"}, Meaning: "learning status of a learned document"},
 	{Key: AnnotationCompletion, Legacy: LegacyAnnotationCompletion, Values: []string{"partial", "complete"}, Meaning: "completion of a learned document"},
 	{Key: AnnotationManagedBy, Legacy: LegacyAnnotationManagedBy, Values: []string{"User"}, Meaning: "an authored document; annotation only, exact value"},
